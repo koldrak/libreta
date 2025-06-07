@@ -48,7 +48,7 @@ public class Libreta {
 		mainmenu.setAlwaysOnTop(true);
 		mainmenu.getContentPane().setLayout(new BoxLayout(mainmenu.getContentPane(), BoxLayout.Y_AXIS)); //para clase main
                
-        //Funcionamaniento de botones
+        //Funcionamiento de botones
         JButton boton1 = new JButton("Agregar Nota");
 
 
