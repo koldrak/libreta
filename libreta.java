@@ -568,10 +568,8 @@ class Formulario extends JFrame {
         Inferior.add (botcrearnota);
   
 
-       
         //Cierre
-        
-        Formulario.this.dispose(); 
+
         this.setVisible(true);
     }
 }
