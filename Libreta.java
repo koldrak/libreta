@@ -339,7 +339,7 @@ class Formulario extends JFrame {
             }
         });
 
-        // Ctrl + Shift: cambiar al siguiente color
+        // Alt + C: cambiar al siguiente color
         campotxt.getInputMap().put(KeyStroke.getKeyStroke("alt C"), "siguienteColor");
         campotxt.getActionMap().put("siguienteColor", new AbstractAction() {
             @Override
@@ -358,7 +358,7 @@ class Formulario extends JFrame {
             }
         });
 
-        // Ctrl + Tab: cambiar al color "Sin destacar"
+     // Alt + X: cambiar al color "Sin destacar"
         campotxt.getInputMap().put(KeyStroke.getKeyStroke("alt X"), "colorSinDestacar");
         campotxt.getActionMap().put("colorSinDestacar", new AbstractAction() {
             @Override
@@ -566,12 +566,9 @@ class Formulario extends JFrame {
         Inferior.add(listacolor);
         Inferior.add(lista);
         Inferior.add (botcrearnota);
-  
-
-       
+         
         //Cierre
-        
-        Formulario.this.dispose(); 
+
         this.setVisible(true);
     }
 }
@@ -729,7 +726,7 @@ class VentanaNota extends JFrame {
             }
         });
 
-        // Ctrl + Shift: cambiar al siguiente color
+        // Alt + C: cambiar al siguiente color
         areatexto.getInputMap().put(KeyStroke.getKeyStroke("alt C"), "siguienteColor");
         areatexto.getActionMap().put("siguienteColor", new AbstractAction() {
             @Override
@@ -748,7 +745,7 @@ class VentanaNota extends JFrame {
             }
         });
 
-        // Ctrl + Tab: cambiar al color "Sin destacar"
+        // Alt + X: cambiar al color "Sin destacar"
         areatexto.getInputMap().put(KeyStroke.getKeyStroke("alt X"), "colorSinDestacar");
         areatexto.getActionMap().put("colorSinDestacar", new AbstractAction() {
             @Override
