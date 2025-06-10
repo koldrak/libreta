@@ -7,6 +7,7 @@ import javax.swing.*;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Element;
+import javax.swing.text.ElementIterator;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
@@ -28,6 +29,11 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.util.InputMismatchException;
+import org.apache.poi.xwpf.usermodel.*;
+import org.apache.poi.util.Units;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import org.jsoup.Jsoup;
 
 
 public class Libreta {
@@ -35,118 +41,219 @@ public class Libreta {
 	static ArrayList<Nota> todasLasNotas = new ArrayList<>();
 
 	public static void main(String[] args) {
-		
+
 		todasLasNotas = Nota.cargarNotas();
 		todasLasNotas.sort((a, b) -> a.titulo.compareToIgnoreCase(b.titulo));
 		for (Nota n : todasLasNotas) {
-		    Notas.addElement(n);
+			Notas.addElement(n);
 		}
 
-		
 		JFrame mainmenu = new JFrame("Libreta de apuntes");
 		mainmenu.setSize(300, 400);
 		mainmenu.setAlwaysOnTop(true);
-		mainmenu.getContentPane().setLayout(new BoxLayout(mainmenu.getContentPane(), BoxLayout.Y_AXIS)); //para clase main
-               
-        //Funcionamaniento de botones
-        JButton boton1 = new JButton("Agregar Nota");
+		mainmenu.setLayout(new BorderLayout());
+		JPanel Superior = new JPanel();
+		JPanel Centro = new JPanel(new BorderLayout());
+		JPanel Inferior = new JPanel(new BorderLayout());
+
+		//Funcionamaniento de botones
+		JButton boton1 = new JButton("Agregar Nota");
+		JButton boton2 = new JButton("Exportar Word");
 
 
-        ActionListener listener = new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                if (e.getSource() == boton1) {
-                	new Formulario ();
-                	
-                }
-            }
-        };
+		ActionListener listener = new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (e.getSource() == boton1) {
+					new Formulario ();
+				}
+			}
+		};
+		ActionListener listener2 = new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (e.getSource() == boton2) {
+				    exportarNotasAWord();
+				}
+			}
+		};
+		//JList con nombres de notas
+		JList <Nota> lista = new JList<>(Notas);
+		JScrollPane scrollLista = new JScrollPane(lista);
+		scrollLista.setPreferredSize(new Dimension(250, 200)); // Opcional: ajustar tamaño visible
 
-        boton1.addActionListener(listener);
-        boton1.setAlignmentX(Component.CENTER_ALIGNMENT);    
-        mainmenu.add(boton1,BorderLayout.SOUTH);
+		lista.addMouseListener(new MouseAdapter() {
+			public void mousePressed(MouseEvent e) {
+				int index = lista.locationToIndex(e.getPoint()); // Índice del ítem bajo el mouse
+
+				if (index >= 0) {
+					lista.setSelectedIndex(index); // Resalta la nota
+					Nota seleccionada = lista.getModel().getElementAt(index);
+
+					// Acción para clic derecho
+					if (SwingUtilities.isRightMouseButton(e)) {
+						int confirmacion = JOptionPane.showConfirmDialog(null,
+								"¿Eliminar la nota \"" + seleccionada.titulo + "\"?",
+								"Confirmar eliminación", JOptionPane.YES_NO_OPTION);
+
+						if (confirmacion == JOptionPane.YES_OPTION) {
+							Libreta.Notas.removeElementAt(index);
+							ArrayList<Nota> respaldo = Collections.list(Notas.elements());
+							Nota.guardarNotas(respaldo);
+						}
+
+						// Acción para clic izquierdo
+					} else if (SwingUtilities.isLeftMouseButton(e)) {
+						new VentanaNota(seleccionada);
+					}
+				}
+			}
+		});
 
 
-        //JList con nombres de notas
-        JList <Nota> lista = new JList<>(Notas);
-        JScrollPane scrollLista = new JScrollPane(lista);
-        scrollLista.setPreferredSize(new Dimension(250, 200)); // Opcional: ajustar tamaño visible
-        
-        lista.addMouseListener(new MouseAdapter() {
-            public void mousePressed(MouseEvent e) {
-                int index = lista.locationToIndex(e.getPoint()); // Índice del ítem bajo el mouse
+		// Campo de búsqueda
+		JTextField buscador = new JTextField(25);
+		buscador.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
 
-                if (index >= 0) {
-                    lista.setSelectedIndex(index); // Resalta la nota
-                    Nota seleccionada = lista.getModel().getElementAt(index);
 
-                    // Acción para clic derecho
-                    if (SwingUtilities.isRightMouseButton(e)) {
-                        int confirmacion = JOptionPane.showConfirmDialog(null,
-                                "¿Eliminar la nota \"" + seleccionada.titulo + "\"?",
-                                "Confirmar eliminación", JOptionPane.YES_NO_OPTION);
+		// Filtro dinámico
+		buscador.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+			public void insertUpdate(javax.swing.event.DocumentEvent e) {
+				filtrarNotas();
+			}
+			public void removeUpdate(javax.swing.event.DocumentEvent e) {
+				filtrarNotas();
+			}
+			public void changedUpdate(javax.swing.event.DocumentEvent e) {
+				filtrarNotas();
+			}
 
-                        if (confirmacion == JOptionPane.YES_OPTION) {
-                            Libreta.Notas.removeElementAt(index);
-                            ArrayList<Nota> respaldo = Collections.list(Notas.elements());
-                            Nota.guardarNotas(respaldo);
-                        }
+			private void filtrarNotas() {
+				String texto = buscador.getText().toLowerCase();
+				Notas.clear();
+				for (Nota n : todasLasNotas) {
+					String[] palabrasClave = texto.split("\\s+");
+					String titulo = n.titulo.toLowerCase();
+					boolean coincide = true;
 
-                    // Acción para clic izquierdo
-                    } else if (SwingUtilities.isLeftMouseButton(e)) {
-                        new VentanaNota(seleccionada);
-                    }
-                }
-            }
-        });
-        mainmenu.add(scrollLista);
-        lista.setAlignmentX(Component.CENTER_ALIGNMENT);
-        
-     // Campo de búsqueda
-        JTextField buscador = new JTextField();
-        buscador.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
-        buscador.setAlignmentX(Component.CENTER_ALIGNMENT);
+					for (String palabra : palabrasClave) {
+						if (!titulo.contains(palabra)) {
+							coincide = false;
+							break;
+						}
+					}
 
-        // Filtro dinámico
-        buscador.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            public void insertUpdate(javax.swing.event.DocumentEvent e) {
-                filtrarNotas();
-            }
-            public void removeUpdate(javax.swing.event.DocumentEvent e) {
-                filtrarNotas();
-            }
-            public void changedUpdate(javax.swing.event.DocumentEvent e) {
-                filtrarNotas();
-            }
+					if (coincide) {
+						Notas.addElement(n);
+					}
 
-            private void filtrarNotas() {
-                String texto = buscador.getText().toLowerCase();
-                Notas.clear();
-                for (Nota n : todasLasNotas) {
-                	String[] palabrasClave = texto.split("\\s+");
-                	String titulo = n.titulo.toLowerCase();
-                	boolean coincide = true;
+				}
+			}
+		});
 
-                	for (String palabra : palabrasClave) {
-                	    if (!titulo.contains(palabra)) {
-                	        coincide = false;
-                	        break;
-                	    }
-                	}
+		//Orden de ventanas
 
-                	if (coincide) {
-                	    Notas.addElement(n);
-                	}
+		mainmenu.add(Superior, BorderLayout.NORTH);
+		boton1.addActionListener(listener);
+		boton2.addActionListener(listener2);   
+		Superior.add(boton1);
+		Superior.add(boton2);
 
-                }
-            }
-        });
+		mainmenu.add(Centro, BorderLayout.CENTER);
+		Centro.add(scrollLista);     
 
-        mainmenu.add(buscador);
-        lista.setAlignmentX(Component.CENTER_ALIGNMENT);
-        //cierre de ventana
-        mainmenu.setVisible(true);
-        mainmenu.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-}
+		mainmenu.add(Inferior, BorderLayout.SOUTH);
+		Inferior.add(buscador);
+
+		//cierre de ventana
+		mainmenu.setVisible(true);
+		mainmenu.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+	}
+	
+	public static void exportarNotasAWord() {
+	    try {
+	        XWPFDocument doc = new XWPFDocument();
+
+	        for (Nota nota : todasLasNotas) {
+	            // Título de la nota
+	            XWPFParagraph titulo = doc.createParagraph();
+	            XWPFRun runTitulo = titulo.createRun();
+	            runTitulo.setText(nota.titulo);
+	            runTitulo.setBold(true);
+	            runTitulo.setFontSize(16);
+
+	            // Analizar contenido HTML
+	            org.jsoup.nodes.Document htmlDoc = Jsoup.parse(nota.contenidoHTML);
+	            for (org.jsoup.nodes.Element elem : htmlDoc.select("*")) {
+	                if (elem.tagName().equals("img")) {
+	                    String src = elem.attr("src").trim();
+	                    int ancho = 200;
+	                    int alto = 200;
+
+	                    try {
+	                        ancho = Integer.parseInt(elem.attr("width"));
+	                        alto = Integer.parseInt(elem.attr("height"));
+	                    } catch (NumberFormatException e) {
+	                        // se usan valores por defecto
+	                    }
+
+	                    File imageFile;
+	                    if (src.contains("/") || src.contains("\\")) {
+	                        imageFile = new File(src);
+	                    } else {
+	                        imageFile = new File("imagenes", src);
+	                    }
+
+	                    if (imageFile.exists()) {
+	                        try (InputStream pic = new FileInputStream(imageFile)) {
+	                            XWPFParagraph p = doc.createParagraph();
+	                            XWPFRun r = p.createRun();
+	                            r.addPicture(pic,
+	                                    XWPFDocument.PICTURE_TYPE_PNG,
+	                                    src,
+	                                    Units.toEMU(ancho),
+	                                    Units.toEMU(alto));
+	                            System.out.println("Imagen encontrada: " + imageFile.getAbsolutePath());
+	                        }
+	                    } else {
+	                        XWPFParagraph p = doc.createParagraph();
+	                        XWPFRun r = p.createRun();
+	                        r.setItalic(true);
+	                        r.setText("[Imagen no encontrada: " + src + "]");
+	                        System.out.println("NO SE ENCONTRÓ: " + imageFile.getAbsolutePath());
+	                    }
+	                } else {
+	                    String texto = elem.ownText();
+	                    if (!texto.isEmpty()) {
+	                        XWPFParagraph p = doc.createParagraph();
+	                        XWPFRun r = p.createRun();
+	                        // Color de fondo si hay
+	                        String bgColor = elem.attr("style");
+	                        if (bgColor.contains("background-color")) {
+	                            // ejemplo: style="background-color:#87CEEB"
+	                            String colorHex = bgColor.split("background-color:")[1].split(";")[0].trim();
+	                            r.setTextHighlightColor(colorHex.replace("#", ""));
+	                        }
+	                        r.setText(texto);
+	                    }
+	                }
+	            }
+
+
+	            doc.createParagraph(); // salto entre notas
+	        }
+
+	        try (FileOutputStream out = new FileOutputStream("NotasExportadas.docx")) {
+	            doc.write(out);
+	        }
+
+	        JOptionPane.showMessageDialog(null, "Notas exportadas correctamente a NotasExportadas.docx");
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        JOptionPane.showMessageDialog(null, "Error al exportar: " + e.getMessage());
+	    }
+	}
+
+
+	
 }
 
 class Nota implements Serializable {
@@ -204,7 +311,10 @@ class Formulario extends JFrame {
 	    return bimage;
 	}
 
-	
+	private String limpiarTitulo(String titulo) {
+	    return titulo.replaceAll("[^a-zA-Z0-9\\-_]", "_");
+	}
+
     public Formulario() {
         this.setTitle("FORMULARIO");
         this.setSize(500, 400);
@@ -396,7 +506,8 @@ class Formulario extends JFrame {
 
                         if (icon instanceof ImageIcon) {
                             ImageIcon imgIcon = (ImageIcon) icon;
-                            String nombreArchivo = "img" + imgIndex + ".png";
+                            String nombreArchivo = limpiarTitulo(valortit) + "_img" + imgIndex + ".png";
+
 
                             // Guarda la imagen en disco
                             File imgDir = new File("imagenes");
@@ -566,9 +677,12 @@ class Formulario extends JFrame {
         Inferior.add(listacolor);
         Inferior.add(lista);
         Inferior.add (botcrearnota);
-         
-        //Cierre
+  
 
+       
+        //Cierre
+        
+        Formulario.this.dispose(); 
         this.setVisible(true);
     }
 }
@@ -593,6 +707,9 @@ class VentanaNota extends JFrame {
 	    bGr.dispose();
 
 	    return bimage;
+	}
+	private String limpiarTitulo(String titulo) {
+	    return titulo.replaceAll("[^a-zA-Z0-9\\-_]", "_");
 	}
 
 	public VentanaNota(Nota not) {
@@ -672,6 +789,41 @@ class VentanaNota extends JFrame {
 
             kit.read(new java.io.StringReader(not.contenidoHTML), doc, 0);
             areatexto.setDocument(doc);
+            
+            try {
+                HTMLDocument htmlDoc = (HTMLDocument) areatexto.getDocument();
+                ElementIterator iterator = new ElementIterator(htmlDoc);
+                Element elem;
+
+                while ((elem = iterator.next()) != null) {
+                    AttributeSet attrs = elem.getAttributes();
+                    Object name = attrs.getAttribute(StyleConstants.NameAttribute);
+
+                    if (name == HTML.Tag.IMG) {
+                        String src = (String) attrs.getAttribute(HTML.Attribute.SRC);
+                        String widthStr = (String) attrs.getAttribute(HTML.Attribute.WIDTH);
+                        String heightStr = (String) attrs.getAttribute(HTML.Attribute.HEIGHT);
+
+                        int ancho = (widthStr != null) ? Integer.parseInt(widthStr) : 200;
+                        int alto = (heightStr != null) ? Integer.parseInt(heightStr) : 200;
+
+                        File imgFile = new File("imagenes", src);
+                        if (!imgFile.exists()) continue;
+
+                        ImageIcon icon = new ImageIcon(new ImageIcon(imgFile.getAbsolutePath())
+                                .getImage().getScaledInstance(ancho, alto, Image.SCALE_SMOOTH));
+
+                        SimpleAttributeSet sas = new SimpleAttributeSet();
+                        StyleConstants.setIcon(sas, icon);
+
+                        htmlDoc.remove(elem.getStartOffset(), elem.getEndOffset() - elem.getStartOffset());
+                        htmlDoc.insertString(elem.getStartOffset(), " ", sas);
+                    }
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -772,7 +924,7 @@ class VentanaNota extends JFrame {
 
                     if (icon instanceof ImageIcon) {
                         ImageIcon imgIcon = (ImageIcon) icon;
-                        String nombreArchivo = "img" + imgIndex + ".png";
+                        String nombreArchivo = limpiarTitulo(not.titulo) + "_img" + imgIndex + ".png";
 
                         // Guardar imagen en disco
                         File imgDir = new File("imagenes");
@@ -905,9 +1057,7 @@ class VentanaNota extends JFrame {
         	} else {
         		listacolor.setVisible(false);
         	}
-        });
-        
-        
+        });       
         
         this.add(panelInferior, BorderLayout.SOUTH);
         panelInferior.add(destacar);
