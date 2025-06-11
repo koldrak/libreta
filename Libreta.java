@@ -14,7 +14,7 @@ import javax.swing.text.StyledDocument;
 import javax.swing.text.html.HTML;
 import javax.swing.text.html.HTMLDocument;
 import javax.swing.text.html.HTMLEditorKit;
-
+import javax.swing.text.StyledEditorKit;
 import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
@@ -342,8 +342,11 @@ class Formulario extends JFrame {
         	            ImageIcon icon = new ImageIcon(img);
 
         	            // Insertamos como icono visual
-        	            this.insertIcon(icon);
-
+                        this.insertIcon(icon);
+                        // Evita que el icono se replique al escribir
+                        StyledEditorKit sek = (StyledEditorKit) this.getEditorKit();
+                        sek.getInputAttributes().removeAttribute(StyleConstants.IconAttribute);
+                        
         	            // Guardamos temporalmente la imagen en una lista
         	            if (imagenesPegadas == null) {
         	                imagenesPegadas = new ArrayList<>();
@@ -406,6 +409,9 @@ class Formulario extends JFrame {
         JScrollPane scroll = new JScrollPane(campotxt); // Para permitir desplazamiento si el texto es largo
         campotxt.setFont(new Font("Arial", Font.BOLD,16));
         
+        // Ctrl + N: aplicar negrita
+        campotxt.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), "negrita" );
+        campotxt.getActionMap().put( "negrita" , new StyledEditorKit .BoldAction());
         
      // Shift + Tab: aplicar color
         campotxt.getInputMap().put(KeyStroke.getKeyStroke("shift TAB"), "aplicarUltimoColor");
@@ -730,6 +736,11 @@ class VentanaNota extends JFrame {
                         Image img = (Image) t.getTransferData(DataFlavor.imageFlavor);
                         ImageIcon icon = new ImageIcon(img);
                         this.insertIcon(icon);
+                        
+                        // Evita que el icono se replique al escribir
+                        StyledEditorKit sek = (StyledEditorKit) this.getEditorKit();
+                        sek.getInputAttributes().removeAttribute(StyleConstants.IconAttribute);
+                        
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }
@@ -832,6 +843,9 @@ class VentanaNota extends JFrame {
         areatexto.setEditable(true);
         JScrollPane scrollarea = new JScrollPane(areatexto); // Para permitir desplazamiento si el texto es largo
         areatexto.setFont(new Font("Arial", Font.BOLD,16));
+     // Ctrl + N: aplicar negrita
+        areatexto.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), "negrita" );
+        areatexto.getActionMap().put( "negrita" , new StyledEditorKit .BoldAction());
         areatexto.setEditable(true);
         this.add(scrollarea);
         
