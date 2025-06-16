@@ -34,7 +34,7 @@ import org.apache.poi.util.Units;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import org.jsoup.Jsoup;
-
+import javax.swing.text.DefaultEditorKit;
 
 public class Libreta {
 	static DefaultListModel <Nota> Notas = new DefaultListModel <>();
@@ -168,9 +168,9 @@ public class Libreta {
 		mainmenu.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	}
 	
-	public static void exportarNotasAWord() {
-	    try {
-	        XWPFDocument doc = new XWPFDocument();
+    public static void exportarNotasAWord() {
+        try {
+            XWPFDocument doc = new XWPFDocument();
 
 	        for (Nota nota : todasLasNotas) {
 	            // Título de la nota
@@ -232,14 +232,13 @@ public class Libreta {
 	                            String colorHex = bgColor.split("background-color:")[1].split(";")[0].trim();
 	                            r.setTextHighlightColor(colorHex.replace("#", ""));
 	                        }
-	                        r.setText(texto);
-	                    }
-	                }
-	            }
+                            r.setText(texto);
+                        }
+                    }
+                }
 
-
-	            doc.createParagraph(); // salto entre notas
-	        }
+                doc.createParagraph(); // salto entre notas
+            }
 
 	        try (FileOutputStream out = new FileOutputStream("NotasExportadas.docx")) {
 	            doc.write(out);
@@ -250,10 +249,27 @@ public class Libreta {
 	        e.printStackTrace();
 	        JOptionPane.showMessageDialog(null, "Error al exportar: " + e.getMessage());
 	    }
-	}
+    }
 
+    /**
+     * Reemplaza los saltos de línea ("\n") del documento por etiquetas
+     * HTML <br> para que se conserven al guardar la nota.
+     */
+    static void reemplazarSaltosDeLinea(HTMLDocument doc, HTMLEditorKit kit) {
+        try {
+            String texto = doc.getText(0, doc.getLength());
+            int pos = 0;
+            while ((pos = texto.indexOf('\n', pos)) != -1) {
+                doc.remove(pos, 1);
+                kit.insertHTML(doc, pos, "<br>", 0, 0, HTML.Tag.BR);
+                texto = doc.getText(0, doc.getLength());
+                pos += 4; // avanza tras la etiqueta insertada
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
 
-	
 }
 
 class Nota implements Serializable {
@@ -413,6 +429,17 @@ class Formulario extends JFrame {
         campotxt.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), "negrita" );
         campotxt.getActionMap().put( "negrita" , new StyledEditorKit .BoldAction());
         
+        // Enter: iniciar nueva línea sin mantener negrita
+        campotxt.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "newline-no-bold");
+        campotxt.getActionMap().put("newline-no-bold", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                new DefaultEditorKit.InsertBreakAction().actionPerformed(e);
+                StyledEditorKit sek = (StyledEditorKit) campotxt.getEditorKit();
+                sek.getInputAttributes().removeAttribute(StyleConstants.Bold);
+            }
+        });
+        
      // Shift + Tab: aplicar color
         campotxt.getInputMap().put(KeyStroke.getKeyStroke("shift TAB"), "aplicarUltimoColor");
         campotxt.getActionMap().put("aplicarUltimoColor", new AbstractAction() {
@@ -532,6 +559,8 @@ class Formulario extends JFrame {
                             imgIndex++;
                         }
                     }
+                    // Reemplaza los saltos de línea por <br> antes de generar el HTML
+                    Libreta.reemplazarSaltosDeLinea((HTMLDocument) doc, kit);
 
                     // Ahora sí, escribir HTML ya procesado
                     writer = new StringWriter(); // reinicia
@@ -846,6 +875,17 @@ class VentanaNota extends JFrame {
      // Ctrl + N: aplicar negrita
         areatexto.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), "negrita" );
         areatexto.getActionMap().put( "negrita" , new StyledEditorKit .BoldAction());
+        // Enter: iniciar nueva línea sin mantener negrita
+        areatexto.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "newline-no-bold");
+        areatexto.getActionMap().put("newline-no-bold", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                new DefaultEditorKit.InsertBreakAction().actionPerformed(e);
+                StyledEditorKit sek = (StyledEditorKit) areatexto.getEditorKit();
+                sek.getInputAttributes().removeAttribute(StyleConstants.Bold);
+            }
+        });
+        
         areatexto.setEditable(true);
         this.add(scrollarea);
         
