@@ -28,10 +28,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.StringWriter;
-import java.util.InputMismatchException;
 import org.apache.poi.xwpf.usermodel.*;
 import org.apache.poi.util.Units;
-import java.io.FileOutputStream;
 import java.io.InputStream;
 import org.jsoup.Jsoup;
 import javax.swing.text.DefaultEditorKit;
@@ -581,20 +579,7 @@ class Formulario extends JFrame {
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }
-
-                
-             // Reordenar notas antes de guardar
-             ArrayList<Nota> respaldo = Collections.list(Libreta.Notas.elements());
-             respaldo.sort((a, b) -> a.titulo.compareToIgnoreCase(b.titulo));
-             Libreta.Notas.clear(); // Vaciar modelo para reinsertar ordenado
-             for (Nota n : respaldo) {
-                 Libreta.Notas.addElement(n);
-                 
-             }
-             Nota.guardarNotas(respaldo);
-
-                
-                Formulario.this.dispose(); 
+                         
             }
         });
         
@@ -715,8 +700,6 @@ class Formulario extends JFrame {
 
        
         //Cierre
-        
-        Formulario.this.dispose(); 
         this.setVisible(true);
     }
 }
@@ -965,7 +948,6 @@ class VentanaNota extends JFrame {
         //Boton de guardado
         JButton guardar = new JButton("Guardar cambios");
         guardar.addActionListener(e -> {
-        	StyledDocument styledDoc = areatexto.getStyledDocument();
             int imgIndex = 0;
 
             try {
