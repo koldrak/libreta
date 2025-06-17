@@ -686,16 +686,15 @@ class Formulario extends JFrame {
 
         lista.addChangeListener(e -> {
             int nuevoTamaño = (int) lista.getValue();
-            
-            javax.swing.text.html.StyleSheet estilo = kit.getStyleSheet();
+            StyledDocument doc = campotxt.getStyledDocument();
+            SimpleAttributeSet attrs = new SimpleAttributeSet();
+            StyleConstants.setFontSize(attrs, nuevoTamaño);
+            doc.setCharacterAttributes(0, doc.getLength(), attrs, false);
 
-            // Elimina reglas anteriores y aplica nuevo tamaño
-            estilo.addRule("body { font-size: " + nuevoTamaño + "pt; }");
+            StyledEditorKit sek = (StyledEditorKit) campotxt.getEditorKit();
+            sek.getInputAttributes().addAttribute(StyleConstants.FontSize, nuevoTamaño);
 
-            // Recarga el contenido actual para aplicar el nuevo estilo
-            String htmlActual = campotxt.getText();
-            campotxt.setText("");           // limpia para forzar recarga
-            campotxt.setText(htmlActual);   // recarga con nueva hoja de estilo
+            campotxt.repaint();
         });
 
         
@@ -998,7 +997,9 @@ class VentanaNota extends JFrame {
                         imgIndex++;
                     }
                 }
-
+                // Reemplaza los saltos de línea por <br> antes de generar el HTML
+                Libreta.reemplazarSaltosDeLinea(doc, kit);
+                
                 // Generar HTML final ya con <img src='...'>
                 writer = new StringWriter(); // reinicia
                 kit.write(writer, doc, 0, doc.getLength());
@@ -1026,16 +1027,14 @@ class VentanaNota extends JFrame {
 
         lista.addChangeListener(e -> {
             int nuevoTamaño = (int) lista.getValue();
-            
-            javax.swing.text.html.StyleSheet estilo = kit.getStyleSheet();
+            SimpleAttributeSet attrs = new SimpleAttributeSet();
+            StyleConstants.setFontSize(attrs, nuevoTamaño);
+            doc.setCharacterAttributes(0, doc.getLength(), attrs, false);
 
-            // Elimina reglas anteriores y aplica nuevo tamaño
-            estilo.addRule("body { font-size: " + nuevoTamaño + "pt; }");
+            StyledEditorKit sek = (StyledEditorKit) areatexto.getEditorKit();
+            sek.getInputAttributes().addAttribute(StyleConstants.FontSize, nuevoTamaño);
 
-            // Recarga el contenido actual para aplicar el nuevo estilo
-            String htmlActual = areatexto.getText();
-            areatexto.setText("");           // limpia para forzar recarga
-            areatexto.setText(htmlActual);   // recarga con nueva hoja de estilo
+            areatexto.repaint();
         });
    
 
