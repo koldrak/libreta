@@ -734,6 +734,14 @@ class VentanaNota extends JFrame {
         this.setAlwaysOnTop(true);
         this.setSize(400, 400);
         this.setLayout(new BorderLayout());
+        // Campo para editar el titulo
+        JPanel panelSuperior = new JPanel();
+        JLabel labelTitulo = new JLabel("Titulo:");
+        JTextField campoTitulo = new JTextField(not.titulo, 20);
+        panelSuperior.add(labelTitulo);
+        panelSuperior.add(campoTitulo);
+        this.add(panelSuperior, BorderLayout.NORTH);
+        
         JPanel panelInferior = new JPanel(); // usa FlowLayout por defecto
         this.add(panelInferior, BorderLayout.SOUTH);
         
@@ -949,6 +957,9 @@ class VentanaNota extends JFrame {
         JButton guardar = new JButton("Guardar cambios");
         guardar.addActionListener(e -> {
             int imgIndex = 0;
+            // Actualiza el titulo de la nota con el valor del campo
+            not.titulo = campoTitulo.getText();
+            VentanaNota.this.setTitle(not.titulo);
 
             try {
                 // Recorre el documento para detectar imágenes
@@ -989,6 +1000,11 @@ class VentanaNota extends JFrame {
 
                 // Guardar notas
                 ArrayList<Nota> respaldo = Collections.list(Libreta.Notas.elements());
+                respaldo.sort((a, b) -> a.titulo.compareToIgnoreCase(b.titulo));
+                Libreta.Notas.clear();
+                for (Nota n : respaldo) {
+                    Libreta.Notas.addElement(n);
+                }
                 Nota.guardarNotas(respaldo);
 
                 VentanaNota.this.dispose();
