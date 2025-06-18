@@ -35,8 +35,19 @@ import org.jsoup.Jsoup;
 import javax.swing.text.DefaultEditorKit;
 
 public class Libreta {
-	static DefaultListModel <Nota> Notas = new DefaultListModel <>();
-	static ArrayList<Nota> todasLasNotas = new ArrayList<>();
+    static DefaultListModel <Nota> Notas = new DefaultListModel <>();
+    static ArrayList<Nota> todasLasNotas = new ArrayList<>();
+    private static String colorDesdeTexto(String palabra) {
+            int hash = palabra.toLowerCase().hashCode();
+            int rgb = hash & 0xFFFFFF; // obtener 6 dígitos hexadecimales
+            return String.format("#%06X", rgb);
+    }
+
+    private static Color colorContraste(Color c) {
+            // luminancia aproximada
+            double y = (0.299 * c.getRed() + 0.587 * c.getGreen() + 0.114 * c.getBlue()) / 255;
+            return (y > 0.5) ? Color.black : Color.white;
+    }
 
 	public static void main(String[] args) {
 
@@ -73,9 +84,27 @@ public class Libreta {
 				}
 			}
 		};
-		//JList con nombres de notas
-		JList <Nota> lista = new JList<>(Notas);
-		JScrollPane scrollLista = new JScrollPane(lista);
+        //JList con nombres de notas
+        JList <Nota> lista = new JList<>(Notas);
+        lista.setCellRenderer(new DefaultListCellRenderer() {
+                @Override
+                public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                        JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                        if (value instanceof Nota) {
+                                String titulo = ((Nota) value).titulo;
+                                String clave = titulo.split("/")[0].trim();
+                                String hex = colorDesdeTexto(clave);
+                                if (!isSelected) {
+                                        label.setOpaque(true);
+                                        Color color = Color.decode(hex);
+                                        label.setBackground(color);
+                                        label.setForeground(colorContraste(color));
+                                }
+                        }
+                        return label;
+                }
+        });
+        JScrollPane scrollLista = new JScrollPane(lista);
 		scrollLista.setPreferredSize(new Dimension(250, 200)); // Opcional: ajustar tamaño visible
 
 		lista.addMouseListener(new MouseAdapter() {
