@@ -1,6 +1,10 @@
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -28,11 +32,16 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.StringWriter;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.text.SimpleDateFormat;
+
 import org.apache.poi.xwpf.usermodel.*;
 import org.apache.poi.util.Units;
 import java.io.InputStream;
 import org.jsoup.Jsoup;
 import javax.swing.text.DefaultEditorKit;
+
 
 public class Libreta {
     static DefaultListModel <Nota> Notas = new DefaultListModel <>();
@@ -314,21 +323,63 @@ class Nota implements Serializable {
 	}
 	
 	public static void guardarNotas(ArrayList<Nota> lista) {
-	    try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream("notas.dat"))) {
-	        out.writeObject(lista);
-	    } catch (IOException e) {
-	        e.printStackTrace();
-	    }
-	}
-	
-	public static ArrayList<Nota> cargarNotas() {
-	    try (ObjectInputStream in = new ObjectInputStream(new FileInputStream("notas.dat"))) {
-	        return (ArrayList<Nota>) in.readObject();
-	    } catch (Exception e) {
-	        return new ArrayList<>(); // Si no existe o da error, inicia vacío
-	    }
-	}
+        File notasFile = new File("notas.dat");
+        File backupDir = new File("respaldos");
+        if (!backupDir.exists()) {
+            backupDir.mkdirs();
+        }
 
+        String stamp = new SimpleDateFormat("yyyyMMdd").format(new Date());
+        File backupFile = new File(backupDir, "notas_" + stamp + ".dat");
+
+        try {
+            if (notasFile.exists()) {
+                Files.copy(notasFile.toPath(), backupFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(notasFile))) {
+            out.writeObject(lista);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static ArrayList<Nota> cargarNotas() {
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream("notas.dat"))) {
+            return (ArrayList<Nota>) in.readObject();
+        } catch (Exception e) {
+            File backupDir = new File("respaldos");
+            if (backupDir.exists()) {
+                File[] backups = backupDir.listFiles((dir, name) -> name.matches("notas_\\d{8}\\.dat"));
+                if (backups != null && backups.length > 0) {
+                    SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
+                    Arrays.sort(backups, (a, b) -> {
+                        Matcher ma = Pattern.compile("notas_(\\d{8})\\.dat").matcher(a.getName());
+                        Matcher mb = Pattern.compile("notas_(\\d{8})\\.dat").matcher(b.getName());
+                        try {
+                            if (ma.matches() && mb.matches()) {
+                                Date da = df.parse(ma.group(1));
+                                Date db = df.parse(mb.group(1));
+                                return db.compareTo(da); // descendente
+                            }
+                        } catch (Exception ex) {
+                            // ignorar y tratar como iguales
+                        }
+                        return 0;
+                    });
+                    try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(backups[0]))) {
+                        return (ArrayList<Nota>) in.readObject();
+                    } catch (Exception ex) {
+                        // ignorar y retornar lista vacía
+                    }
+                }
+            }
+            return new ArrayList<>();
+        }
+    }
 }
 
 class Formulario extends JFrame {
