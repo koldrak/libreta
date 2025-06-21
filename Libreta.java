@@ -47,9 +47,42 @@ public class Libreta {
     static DefaultListModel <Nota> Notas = new DefaultListModel <>();
     static ArrayList<Nota> todasLasNotas = new ArrayList<>();
     private static String colorDesdeTexto(String palabra) {
-            int hash = palabra.toLowerCase().hashCode();
-            int rgb = hash & 0xFFFFFF; // obtener 6 dígitos hexadecimales
-            return String.format("#%06X", rgb);
+    	 palabra = palabra.toLowerCase();
+         int suma = 0;
+         for (char c : palabra.toCharArray()) {
+             suma += c;
+         }
+         int r = (suma * 3) % 256;
+         int g = (suma * 5) % 256;
+         int b = (suma * 7) % 256;
+         return String.format("#%02X%02X%02X", r, g, b);
+     }
+
+     private static String colorDesdeTitulo(String titulo) {
+         String antesSlash = titulo.split("/", 2)[0].trim();
+         String[] partes = antesSlash.split("\\s+", 2);
+         String primera = partes.length > 0 ? partes[0] : "";
+         String resto = partes.length > 1 ? partes[1] : "";
+
+         Color base = Color.decode(colorDesdeTexto(primera));
+
+         if (!resto.isEmpty()) {
+             int suma = 0;
+             for (char c : resto.toLowerCase().toCharArray()) {
+                 suma += c;
+             }
+
+             int deltaR = ((suma * 1) % 201) - 30; // rango [-100,100]
+             int deltaG = ((suma * 5) % 201) - 30;
+             int deltaB = ((suma * 1) % 201) - 30;
+
+             int r = Math.max(0, Math.min(255, base.getRed() + deltaR));
+             int g = Math.max(0, Math.min(255, base.getGreen() + deltaG));
+             int b = Math.max(0, Math.min(255, base.getBlue() + deltaB));
+             base = new Color(r, g, b);
+         }
+
+         return String.format("#%02X%02X%02X", base.getRed(), base.getGreen(), base.getBlue());
     }
 
     private static Color colorContraste(Color c) {
@@ -101,8 +134,8 @@ public class Libreta {
                         JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                         if (value instanceof Nota) {
                                 String titulo = ((Nota) value).titulo;
-                                String clave = titulo.split("/")[0].trim();
-                                String hex = colorDesdeTexto(clave);
+                                String hex = colorDesdeTitulo(titulo);
+
                                 if (!isSelected) {
                                         label.setOpaque(true);
                                         Color color = Color.decode(hex);
