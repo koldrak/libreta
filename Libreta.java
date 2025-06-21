@@ -46,6 +46,8 @@ import javax.swing.text.DefaultEditorKit;
 public class Libreta {
     static DefaultListModel <Nota> Notas = new DefaultListModel <>();
     static ArrayList<Nota> todasLasNotas = new ArrayList<>();
+    static JLabel contadorTotal = new JLabel();
+    static JLabel contadorHoy = new JLabel();
     private static String colorDesdeTexto(String palabra) {
     	 palabra = palabra.toLowerCase();
          int suma = 0;
@@ -96,6 +98,21 @@ public class Libreta {
             double y = (0.299 * c.getRed() + 0.587 * c.getGreen() + 0.114 * c.getBlue()) / 255;
             return (y > 0.5) ? Color.black : Color.white;
     }
+    private static boolean esHoy(Date fecha) {
+        if (fecha == null) return false;
+        SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
+        return df.format(fecha).equals(df.format(new Date()));
+    }
+
+    static void actualizarContadores() {
+        todasLasNotas = Collections.list(Notas.elements());
+        contadorTotal.setText("Total: " + todasLasNotas.size());
+        int hoy = 0;
+        for (Nota n : todasLasNotas) {
+            if (esHoy(n.fechaCreacion)) hoy++;
+        }
+        contadorHoy.setText("Hoy: " + hoy);
+    }
 
 	public static void main(String[] args) {
 
@@ -105,18 +122,19 @@ public class Libreta {
 			Notas.addElement(n);
 		}
 
-		JFrame mainmenu = new JFrame("Libreta de apuntes");
-		mainmenu.setSize(300, 400);
-		mainmenu.setAlwaysOnTop(true);
-		mainmenu.setLayout(new BorderLayout());
-		JPanel Superior = new JPanel();
-		JPanel Centro = new JPanel(new BorderLayout());
-		JPanel Inferior = new JPanel(new BorderLayout());
+		 JFrame mainmenu = new JFrame("Libreta de apuntes");
+         mainmenu.setSize(300, 400);
+         mainmenu.setAlwaysOnTop(true);
+         mainmenu.setLayout(new BorderLayout());
+         JPanel Superior = new JPanel();
+         JPanel Centro = new JPanel(new BorderLayout());
+         JPanel Inferior = new JPanel(new BorderLayout());
 
-		//Funcionamaniento de botones
-		JButton boton1 = new JButton("Agregar Nota");
-		JButton boton2 = new JButton("Exportar Word");
+         //Funcionamaniento de botones
+         JButton boton1 = new JButton("Agregar Nota");
+         JButton boton2 = new JButton("Exportar Word");
 
+         actualizarContadores();
 
 		ActionListener listener = new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -171,8 +189,9 @@ public class Libreta {
 
 						if (confirmacion == JOptionPane.YES_OPTION) {
 							Libreta.Notas.removeElementAt(index);
-							ArrayList<Nota> respaldo = Collections.list(Notas.elements());
-							Nota.guardarNotas(respaldo);
+                            ArrayList<Nota> respaldo = Collections.list(Notas.elements());
+                            Nota.guardarNotas(respaldo);
+                            Libreta.actualizarContadores();
 						}
 
 						// Acción para clic izquierdo
@@ -226,11 +245,13 @@ public class Libreta {
 
 		//Orden de ventanas
 
-		mainmenu.add(Superior, BorderLayout.NORTH);
-		boton1.addActionListener(listener);
-		boton2.addActionListener(listener2);   
-		Superior.add(boton1);
-		Superior.add(boton2);
+	      mainmenu.add(Superior, BorderLayout.NORTH);
+          boton1.addActionListener(listener);
+          boton2.addActionListener(listener2);
+          Superior.add(contadorTotal);
+          Superior.add(boton1);
+          Superior.add(boton2);
+          Superior.add(contadorHoy);
 
 		mainmenu.add(Centro, BorderLayout.CENTER);
 		Centro.add(scrollLista);     
@@ -348,14 +369,21 @@ public class Libreta {
 }
 
 class Nota implements Serializable {
-	String titulo;
-	String contenidoHTML;
-	
-	public Nota (String ti,String con) {
-		titulo = ti;
-		contenidoHTML = con;
-		Libreta.Notas.addElement(this);
-	}
+	  private static final long serialVersionUID = 5744357576790633364L;
+      String titulo;
+      String contenidoHTML;
+      Date fechaCreacion;
+
+      public Nota (String ti,String con) {
+              this(ti, con, new Date());
+      }
+
+      public Nota(String ti, String con, Date fecha) {
+              titulo = ti;
+              contenidoHTML = con;
+              fechaCreacion = fecha;
+              Libreta.Notas.addElement(this);
+      }
 	
 	public String toString() {
 		return titulo;
@@ -692,7 +720,7 @@ class Formulario extends JFrame {
                     Libreta.Notas.clear();
                     for (Nota n : respaldo) Libreta.Notas.addElement(n);
                     Nota.guardarNotas(respaldo);
-
+                    Libreta.actualizarContadores();
                     Formulario.this.dispose();
 
                 } catch (Exception ex) {
