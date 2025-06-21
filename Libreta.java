@@ -69,12 +69,18 @@ public class Libreta {
          if (!resto.isEmpty()) {
              int suma = 0;
              for (char c : resto.toLowerCase().toCharArray()) {
-                 suma += c;
+                 if (Character.isDigit(c)) {
+                     // pondera los dígitos para que pequeñas diferencias numéricas
+                     // produzcan colores más distintos
+                     suma += (c - '0') * 25;
+                 } else if (c != '.') { // se ignoran puntos decimales
+                     suma += c;
+                 }
              }
 
-             int deltaR = ((suma * 1) % 201) - 30; // rango [-100,100]
-             int deltaG = ((suma * 5) % 201) - 30;
-             int deltaB = ((suma * 1) % 201) - 30;
+             int deltaR = ((suma * 1) % 201) - 100; // rango [-100,100]
+             int deltaG = ((suma * 1) % 201) - 100;
+             int deltaB = ((suma * 1) % 201) - 100;
 
              int r = Math.max(0, Math.min(255, base.getRed() + deltaR));
              int g = Math.max(0, Math.min(255, base.getGreen() + deltaG));
