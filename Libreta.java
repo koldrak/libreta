@@ -48,6 +48,8 @@ public class Libreta {
     static ArrayList<Nota> todasLasNotas = new ArrayList<>();
     static JLabel contadorTotal = new JLabel();
     static JLabel contadorHoy = new JLabel();
+    // Anchura máxima aproximada de las imágenes en Word (en píxeles)
+    private static final int MAX_IMG_WIDTH_PX = 500;
     private static String colorDesdeTexto(String palabra) {
     	 palabra = palabra.toLowerCase();
          int suma = 0;
@@ -123,7 +125,7 @@ public class Libreta {
 		}
 
 		 JFrame mainmenu = new JFrame("Libreta de apuntes");
-         mainmenu.setSize(300, 400);
+         mainmenu.setSize(353, 400);
          mainmenu.setAlwaysOnTop(true);
          mainmenu.setLayout(new BorderLayout());
          JPanel Superior = new JPanel();
@@ -268,83 +270,32 @@ public class Libreta {
         try {
             XWPFDocument doc = new XWPFDocument();
 
-	        for (Nota nota : todasLasNotas) {
-	            // Título de la nota
-	            XWPFParagraph titulo = doc.createParagraph();
-	            XWPFRun runTitulo = titulo.createRun();
-	            runTitulo.setText(nota.titulo);
-	            runTitulo.setBold(true);
-	            runTitulo.setFontSize(16);
+            for (Nota nota : todasLasNotas) {
+                // Título de la nota
+                XWPFParagraph titulo = doc.createParagraph();
+                XWPFRun runTitulo = titulo.createRun();
+                runTitulo.setText(nota.titulo);
+                runTitulo.setBold(true);
+                runTitulo.setFontSize(16);
 
-	            // Analizar contenido HTML
-	            org.jsoup.nodes.Document htmlDoc = Jsoup.parse(nota.contenidoHTML);
-	            for (org.jsoup.nodes.Element elem : htmlDoc.select("*")) {
-	                if (elem.tagName().equals("img")) {
-	                    String src = elem.attr("src").trim();
-	                    int ancho = 200;
-	                    int alto = 200;
-
-	                    try {
-	                        ancho = Integer.parseInt(elem.attr("width"));
-	                        alto = Integer.parseInt(elem.attr("height"));
-	                    } catch (NumberFormatException e) {
-	                        // se usan valores por defecto
-	                    }
-
-	                    File imageFile;
-	                    if (src.contains("/") || src.contains("\\")) {
-	                        imageFile = new File(src);
-	                    } else {
-	                        imageFile = new File("imagenes", src);
-	                    }
-
-	                    if (imageFile.exists()) {
-	                        try (InputStream pic = new FileInputStream(imageFile)) {
-	                            XWPFParagraph p = doc.createParagraph();
-	                            XWPFRun r = p.createRun();
-	                            r.addPicture(pic,
-	                                    XWPFDocument.PICTURE_TYPE_PNG,
-	                                    src,
-	                                    Units.toEMU(ancho),
-	                                    Units.toEMU(alto));
-	                            System.out.println("Imagen encontrada: " + imageFile.getAbsolutePath());
-	                        }
-	                    } else {
-	                        XWPFParagraph p = doc.createParagraph();
-	                        XWPFRun r = p.createRun();
-	                        r.setItalic(true);
-	                        r.setText("[Imagen no encontrada: " + src + "]");
-	                        System.out.println("NO SE ENCONTRÓ: " + imageFile.getAbsolutePath());
-	                    }
-	                } else {
-	                    String texto = elem.ownText();
-	                    if (!texto.isEmpty()) {
-	                        XWPFParagraph p = doc.createParagraph();
-	                        XWPFRun r = p.createRun();
-	                        // Color de fondo si hay
-	                        String bgColor = elem.attr("style");
-	                        if (bgColor.contains("background-color")) {
-	                            // ejemplo: style="background-color:#87CEEB"
-	                            String colorHex = bgColor.split("background-color:")[1].split(";")[0].trim();
-	                            r.setTextHighlightColor(colorHex.replace("#", ""));
-	                        }
-                            r.setText(texto);
-                        }
-                    }
+                org.jsoup.nodes.Document htmlDoc = Jsoup.parse(nota.contenidoHTML);
+                XWPFParagraph[] actual = new XWPFParagraph[] { doc.createParagraph() };
+                for (org.jsoup.nodes.Node nodo : htmlDoc.body().childNodes()) {
+                    procesarNodo(nodo, doc, actual, null);
                 }
 
                 doc.createParagraph(); // salto entre notas
             }
 
-	        try (FileOutputStream out = new FileOutputStream("NotasExportadas.docx")) {
-	            doc.write(out);
-	        }
+            try (FileOutputStream out = new FileOutputStream("NotasExportadas.docx")) {
+                doc.write(out);
+            }
 
-	        JOptionPane.showMessageDialog(null, "Notas exportadas correctamente a NotasExportadas.docx");
-	    } catch (Exception e) {
-	        e.printStackTrace();
-	        JOptionPane.showMessageDialog(null, "Error al exportar: " + e.getMessage());
-	    }
+            JOptionPane.showMessageDialog(null, "Notas exportadas correctamente a NotasExportadas.docx");
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error al exportar: " + e.getMessage());
+        }
     }
 
     /**
@@ -355,17 +306,103 @@ public class Libreta {
         try {
             String texto = doc.getText(0, doc.getLength());
             int pos = 0;
-            while ((pos = texto.indexOf('\n', pos)) != -1) {
-                doc.remove(pos, 1);
-                kit.insertHTML(doc, pos, "<br>", 0, 0, HTML.Tag.BR);
-                texto = doc.getText(0, doc.getLength());
-                pos += 4; // avanza tras la etiqueta insertada
+            while (pos < texto.length()) {
+                char c = texto.charAt(pos);
+                if (c == '\r') {
+                    boolean hasNewline = pos + 1 < texto.length() && texto.charAt(pos + 1) == '\n';
+                    doc.remove(pos, hasNewline ? 2 : 1);
+                    kit.insertHTML(doc, pos, "<br>", 0, 0, HTML.Tag.BR);
+                    texto = doc.getText(0, doc.getLength());
+                    pos += 4;
+                } else if (c == '\n') {
+                    doc.remove(pos, 1);
+                    kit.insertHTML(doc, pos, "<br>", 0, 0, HTML.Tag.BR);
+                    texto = doc.getText(0, doc.getLength());
+                    pos += 4;
+                } else {
+                    pos++;
+                }
             }
         } catch (Exception ex) {
             ex.printStackTrace();
         }
     }
+    // Procesa recursivamente el HTML para exportar respetando <br>
+    private static void procesarNodo(org.jsoup.nodes.Node nodo, XWPFDocument doc,
+                                     XWPFParagraph[] actual, String colorBg) {
+        if (nodo instanceof org.jsoup.nodes.TextNode) {
+            String texto = ((org.jsoup.nodes.TextNode) nodo).text();
+            if (!texto.isEmpty()) {
+                XWPFRun r = actual[0].createRun();
+                if (colorBg != null) r.setTextHighlightColor(colorBg.replace("#", ""));
+                r.setText(texto);
+            }
+        } else if (nodo instanceof org.jsoup.nodes.Element) {
+            org.jsoup.nodes.Element e = (org.jsoup.nodes.Element) nodo;
+            String nuevoBg = colorBg;
+            String estilo = e.attr("style");
+            if (estilo.contains("background-color")) {
+                try {
+                    nuevoBg = estilo.split("background-color:")[1].split(";")[0].trim();
+                } catch (Exception ex) {
+                    nuevoBg = colorBg;
+                }
+            }
 
+            if (e.tagName().equalsIgnoreCase("br")) {
+                actual[0] = doc.createParagraph();
+                return;
+            } else if (e.tagName().equalsIgnoreCase("img")) {
+                String src = e.attr("src").trim();
+                int ancho = 200;
+                int alto = 200;
+                try {
+                    ancho = Integer.parseInt(e.attr("width"));
+                    alto = Integer.parseInt(e.attr("height"));
+                } catch (NumberFormatException ex) {
+                    // usar valores por defecto
+                }
+                File imageFile = (src.contains("/") || src.contains("\\")) ? new File(src) : new File("imagenes", src);
+                if (imageFile.exists()) {
+                    try (InputStream pic = new FileInputStream(imageFile)) {
+                        // Si no hay dimensiones, obtenerlas de la imagen
+                        if (!e.hasAttr("width") || !e.hasAttr("height")) {
+                            try {
+                                BufferedImage bimg = ImageIO.read(imageFile);
+                                if (bimg != null) {
+                                    if (!e.hasAttr("width")) ancho = bimg.getWidth();
+                                    if (!e.hasAttr("height")) alto = bimg.getHeight();
+                                }
+                            } catch (IOException ex) {
+                                // ignorar y usar valores por defecto
+                            }
+                        }
+
+                        // Escala la imagen si excede el máximo permitido
+                        if (ancho > MAX_IMG_WIDTH_PX) {
+                            double escala = (double) MAX_IMG_WIDTH_PX / ancho;
+                            ancho = MAX_IMG_WIDTH_PX;
+                            alto = (int) Math.round(alto * escala);
+                        }
+
+                        XWPFRun r = actual[0].createRun();
+                        r.addPicture(pic, XWPFDocument.PICTURE_TYPE_PNG, src,
+                                     Units.toEMU(ancho), Units.toEMU(alto));
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                } else {
+                    XWPFRun r = actual[0].createRun();
+                    r.setItalic(true);
+                    r.setText("[Imagen no encontrada: " + src + "]");
+                }
+            } else {
+                for (org.jsoup.nodes.Node child : e.childNodes()) {
+                    procesarNodo(child, doc, actual, nuevoBg);
+                }
+            }
+        }
+    }
 }
 
 class Nota implements Serializable {
@@ -517,10 +554,18 @@ class Formulario extends JFrame {
         	        } catch (Exception ex) {
         	            ex.printStackTrace();
         	        }
-        	    } else {
-        	        super.paste();
-        	    }
-        	}
+        	    } else if (t != null && t.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+                    try {
+                        String texto = (String) t.getTransferData(DataFlavor.stringFlavor);
+                        texto = texto.replace("\r\n", "\n").replace('\r', '\n');
+                        this.replaceSelection(texto);
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                } else {
+                    super.paste();
+                }
+            }
 
         };
         campotxt.addMouseListener(new MouseAdapter() {
@@ -907,6 +952,14 @@ class VentanaNota extends JFrame {
                         StyledEditorKit sek = (StyledEditorKit) this.getEditorKit();
                         sek.getInputAttributes().removeAttribute(StyleConstants.IconAttribute);
                         
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                } else if (t != null && t.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+                    try {
+                        String texto = (String) t.getTransferData(DataFlavor.stringFlavor);
+                        texto = texto.replace("\r\n", "\n").replace('\r', '\n');
+                        this.replaceSelection(texto);
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }
