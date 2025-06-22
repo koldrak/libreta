@@ -41,7 +41,8 @@ import org.apache.poi.util.Units;
 import java.io.InputStream;
 import org.jsoup.Jsoup;
 import javax.swing.text.DefaultEditorKit;
-
+import java.util.Map;
+import java.util.LinkedHashMap;
 
 public class Libreta {
     static DefaultListModel <Nota> Notas = new DefaultListModel <>();
@@ -107,7 +108,6 @@ public class Libreta {
     }
 
     static void actualizarContadores() {
-        todasLasNotas = Collections.list(Notas.elements());
         contadorTotal.setText("Total: " + todasLasNotas.size());
         int hoy = 0;
         for (Nota n : todasLasNotas) {
@@ -115,7 +115,7 @@ public class Libreta {
         }
         contadorHoy.setText("Hoy: " + hoy);
     }
-
+    
 	public static void main(String[] args) {
 
 		todasLasNotas = Nota.cargarNotas();
@@ -134,7 +134,7 @@ public class Libreta {
 
          //Funcionamaniento de botones
          JButton boton1 = new JButton("Agregar Nota");
-         JButton boton2 = new JButton("Exportar Word");
+         JButton boton2 = new JButton("Otros");
 
          actualizarContadores();
 
@@ -145,13 +145,20 @@ public class Libreta {
 				}
 			}
 		};
-		ActionListener listener2 = new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				if (e.getSource() == boton2) {
-				    exportarNotasAWord();
-				}
-			}
-		};
+        ActionListener listener2 = new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                    if (e.getSource() == boton2) {
+                        JPopupMenu menu = new JPopupMenu();
+                        JMenuItem mExportar = new JMenuItem("Exportar Word");
+                        JMenuItem mRecuperar = new JMenuItem("Recuperar Data");
+                        menu.add(mExportar);
+                        menu.add(mRecuperar);
+                        mExportar.addActionListener(ev -> exportarNotasAWord());
+                        mRecuperar.addActionListener(ev -> recuperarData());
+                        menu.show(boton2, 0, boton2.getHeight());
+                    }
+            }
+    };
         //JList con nombres de notas
         JList <Nota> lista = new JList<>(Notas);
         lista.setCellRenderer(new DefaultListCellRenderer() {
@@ -189,12 +196,12 @@ public class Libreta {
 								"¿Eliminar la nota \"" + seleccionada.titulo + "\"?",
 								"Confirmar eliminación", JOptionPane.YES_NO_OPTION);
 
-						if (confirmacion == JOptionPane.YES_OPTION) {
-							Libreta.Notas.removeElementAt(index);
-                            ArrayList<Nota> respaldo = Collections.list(Notas.elements());
-                            Nota.guardarNotas(respaldo);
+                        if (confirmacion == JOptionPane.YES_OPTION) {
+                            Libreta.Notas.removeElementAt(index);
+                            Libreta.todasLasNotas.remove(seleccionada);
+                            Nota.guardarNotas(new ArrayList<>(Libreta.todasLasNotas));
                             Libreta.actualizarContadores();
-						}
+                    }
 
 						// Acción para clic izquierdo
 					} else if (SwingUtilities.isLeftMouseButton(e)) {
@@ -297,7 +304,40 @@ public class Libreta {
             JOptionPane.showMessageDialog(null, "Error al exportar: " + e.getMessage());
         }
     }
+    public static void recuperarData() {
+        File backupDir = new File("respaldos");
+        if (!backupDir.exists()) {
+            JOptionPane.showMessageDialog(null, "No hay respaldos");
+            return;
+        }
+        File[] backups = backupDir.listFiles((dir, name) -> name.matches("notas_\\d{8}\\.dat"));
+        if (backups == null || backups.length == 0) {
+            JOptionPane.showMessageDialog(null, "No hay respaldos");
+            return;
+        }
 
+        Map<String, Nota> map = new LinkedHashMap<>();
+        for (File b : backups) {
+            try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(b))) {
+                ArrayList<Nota> lista = (ArrayList<Nota>) in.readObject();
+                for (Nota n : lista) {
+                    if (!map.containsKey(n.titulo)) {
+                        map.put(n.titulo, n);
+                    }
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream("respaldo.dat"))) {
+            out.writeObject(new ArrayList<>(map.values()));
+            JOptionPane.showMessageDialog(null, "Respaldos agrupados en agrupacion.data");
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error al agrupar: " + ex.getMessage());
+        }
+    }
     /**
      * Reemplaza los saltos de línea ("\n") del documento por etiquetas
      * HTML <br> para que se conserven al guardar la nota.
@@ -802,12 +842,16 @@ class Formulario extends JFrame {
 
                     Nota notax = new Nota(valortit, htmlFinal);
 
-                    // Reordenar y guardar
-                    ArrayList<Nota> respaldo = Collections.list(Libreta.Notas.elements());
-                    respaldo.sort((a, b) -> a.titulo.compareToIgnoreCase(b.titulo));
+                    // Ordenar visualmente las notas actuales
+                    ArrayList<Nota> visibles = Collections.list(Libreta.Notas.elements());
+                    visibles.sort((a, b) -> a.titulo.compareToIgnoreCase(b.titulo));
                     Libreta.Notas.clear();
-                    for (Nota n : respaldo) Libreta.Notas.addElement(n);
-                    Nota.guardarNotas(respaldo);
+                    for (Nota n : visibles) Libreta.Notas.addElement(n);
+
+                    // Actualizar almacenamiento con la lista completa
+                    Libreta.todasLasNotas.add(notax);
+                    Libreta.todasLasNotas.sort((a, b) -> a.titulo.compareToIgnoreCase(b.titulo));
+                    Nota.guardarNotas(new ArrayList<>(Libreta.todasLasNotas));
                     Libreta.actualizarContadores();
                     Formulario.this.dispose();
 
@@ -1253,14 +1297,17 @@ class VentanaNota extends JFrame {
                 kit.write(writer, doc, 0, doc.getLength());
                 not.contenidoHTML = writer.toString();
 
-                // Guardar notas
-                ArrayList<Nota> respaldo = Collections.list(Libreta.Notas.elements());
-                respaldo.sort((a, b) -> a.titulo.compareToIgnoreCase(b.titulo));
+                // Ordenar visualmente las notas actuales
+                ArrayList<Nota> visibles = Collections.list(Libreta.Notas.elements());
+                visibles.sort((a, b) -> a.titulo.compareToIgnoreCase(b.titulo));
                 Libreta.Notas.clear();
-                for (Nota n : respaldo) {
+                for (Nota n : visibles) {
                     Libreta.Notas.addElement(n);
                 }
-                Nota.guardarNotas(respaldo);
+                // Actualizar almacenamiento con la lista completa
+                Libreta.todasLasNotas.sort((a, b) -> a.titulo.compareToIgnoreCase(b.titulo));
+                Nota.guardarNotas(new ArrayList<>(Libreta.todasLasNotas));
+                Libreta.actualizarContadores();
 
                 VentanaNota.this.dispose();
 
