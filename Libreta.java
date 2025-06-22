@@ -281,7 +281,7 @@ public class Libreta {
                 org.jsoup.nodes.Document htmlDoc = Jsoup.parse(nota.contenidoHTML);
                 XWPFParagraph[] actual = new XWPFParagraph[] { doc.createParagraph() };
                 for (org.jsoup.nodes.Node nodo : htmlDoc.body().childNodes()) {
-                    procesarNodo(nodo, doc, actual, null);
+                	procesarNodo(nodo, doc, actual, null, false);
                 }
 
                 doc.createParagraph(); // salto entre notas
@@ -327,19 +327,37 @@ public class Libreta {
             ex.printStackTrace();
         }
     }
-    // Procesa recursivamente el HTML para exportar respetando <br>
+    // Convierte un color hexadecimal a un nombre aceptado por setTextHighlightColor
+    private static String mapHighlight(String hex) {
+        if (hex == null) return null;
+        hex = hex.toUpperCase();
+        switch (hex) {
+            case "#808080": return "darkGray";   // gris
+            case "#90EE90": return "green";     // verde claro
+            case "#CC9900": return "yellow";    // amarillo oscuro
+            case "#87CEEB": return "cyan";      // celeste
+            default: return null;
+        }
+    }
+
+    // Procesa recursivamente el HTML para exportar respetando <br> y negritas
     private static void procesarNodo(org.jsoup.nodes.Node nodo, XWPFDocument doc,
-                                     XWPFParagraph[] actual, String colorBg) {
+    		 XWPFParagraph[] actual, String colorBg, boolean bold) {
         if (nodo instanceof org.jsoup.nodes.TextNode) {
             String texto = ((org.jsoup.nodes.TextNode) nodo).text();
             if (!texto.isEmpty()) {
                 XWPFRun r = actual[0].createRun();
-                if (colorBg != null) r.setTextHighlightColor(colorBg.replace("#", ""));
+                if (colorBg != null) {
+                    String val = mapHighlight(colorBg);
+                    if (val != null) r.setTextHighlightColor(val);
+                }
+                if (bold) r.setBold(true);
                 r.setText(texto);
             }
         } else if (nodo instanceof org.jsoup.nodes.Element) {
             org.jsoup.nodes.Element e = (org.jsoup.nodes.Element) nodo;
             String nuevoBg = colorBg;
+            boolean nuevoBold = bold;
             String estilo = e.attr("style");
             if (estilo.contains("background-color")) {
                 try {
@@ -348,7 +366,11 @@ public class Libreta {
                     nuevoBg = colorBg;
                 }
             }
-
+            String estiloLower = estilo.toLowerCase();
+            if (e.tagName().equalsIgnoreCase("b") || e.tagName().equalsIgnoreCase("strong") ||
+                estiloLower.contains("font-weight:bold") || estiloLower.contains("font-weight:700")) {
+                nuevoBold = true;
+            }
             if (e.tagName().equalsIgnoreCase("br")) {
                 actual[0] = doc.createParagraph();
                 return;
@@ -398,7 +420,7 @@ public class Libreta {
                 }
             } else {
                 for (org.jsoup.nodes.Node child : e.childNodes()) {
-                    procesarNodo(child, doc, actual, nuevoBg);
+                	procesarNodo(child, doc, actual, nuevoBg, nuevoBold);
                 }
             }
         }
