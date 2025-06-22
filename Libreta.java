@@ -624,9 +624,11 @@ class Formulario extends JFrame {
         campotxt.getActionMap().put("newline-no-bold", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                new DefaultEditorKit.InsertBreakAction().actionPerformed(e);
                 StyledEditorKit sek = (StyledEditorKit) campotxt.getEditorKit();
+                int size = StyleConstants.getFontSize(sek.getInputAttributes());
+                new DefaultEditorKit.InsertBreakAction().actionPerformed(e);
                 sek.getInputAttributes().removeAttribute(StyleConstants.Bold);
+                sek.getInputAttributes().addAttribute(StyleConstants.FontSize, size);
             }
         });
         
@@ -1069,10 +1071,12 @@ class VentanaNota extends JFrame {
         areatexto.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "newline-no-bold");
         areatexto.getActionMap().put("newline-no-bold", new AbstractAction() {
             @Override
-            public void actionPerformed(ActionEvent e) {
-                new DefaultEditorKit.InsertBreakAction().actionPerformed(e);
+            public void actionPerformed(ActionEvent e) {         
                 StyledEditorKit sek = (StyledEditorKit) areatexto.getEditorKit();
+                int size = StyleConstants.getFontSize(sek.getInputAttributes());
+                new DefaultEditorKit.InsertBreakAction().actionPerformed(e);
                 sek.getInputAttributes().removeAttribute(StyleConstants.Bold);
+                sek.getInputAttributes().addAttribute(StyleConstants.FontSize, size);
             }
         });
         
