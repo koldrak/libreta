@@ -487,10 +487,32 @@ class Nota implements Serializable {
 }
 
 class Formulario extends JFrame {
-	StringWriter writer = new StringWriter();
-	HTMLEditorKit kit = new HTMLEditorKit();
-	public String ultimoColorHTML = null;
-	ArrayList<ImageIcon> imagenesPegadas = new ArrayList<>();
+	  StringWriter writer = new StringWriter();
+      HTMLEditorKit kit = new HTMLEditorKit();
+      public String ultimoColorHTML = null;
+      ArrayList<ImageIcon> imagenesPegadas = new ArrayList<>();
+
+      private String spanConColor(String texto, String color, int size) {
+          String extra = color.equals("#FFFFFF") ? "; color:#000000" : "";
+          String[] partes = texto.split("\\r?\\n", -1);
+          StringBuilder sb = new StringBuilder();
+          for (int i = 0; i < partes.length; i++) {
+              String parte = partes[i];
+              if (!parte.isEmpty()) {
+                  sb.append("<span style=\"background-color:")
+                    .append(color)
+                    .append("; font-size:")
+                    .append(size)
+                    .append("pt")
+                    .append(extra)
+                    .append("\">")
+                    .append(parte)
+                    .append("</span>");
+              }
+              if (i < partes.length - 1) sb.append("<br>");
+          }
+          return sb.toString();
+      }
 
 	private BufferedImage toBufferedImage(Image img) {
 	    if (img instanceof BufferedImage) {
@@ -655,14 +677,11 @@ class Formulario extends JFrame {
 
                     if (start >= end || ultimoColorHTML == null) return;
 
-                    String original = campotxt.getDocument().getText(start, end - start);
-                    String nuevoTexto;
+                    StyledEditorKit sek = (StyledEditorKit) campotxt.getEditorKit();
+                    int size = StyleConstants.getFontSize(sek.getInputAttributes());
 
-                    if (ultimoColorHTML.equals("#FFFFFF")) {
-                        nuevoTexto = "<span style=\"background-color:#FFFFFF; color:#000000\">" + original + "</span>";
-                    } else {
-                        nuevoTexto = "<span style=\"background-color:" + ultimoColorHTML + "\">" + original + "</span>";
-                    }
+                    String original = campotxt.getDocument().getText(start, end - start);
+                    String nuevoTexto = spanConColor(original, ultimoColorHTML, size);
 
                     javax.swing.text.Document doc = campotxt.getDocument();
                     doc.remove(start, end - start);
@@ -787,37 +806,41 @@ class Formulario extends JFrame {
             if (!e.getValueIsAdjusting()) {
             	try {
             	    int start = campotxt.getSelectionStart();
-            	    int end = campotxt.getSelectionEnd();
-            	    if (start == end) return;
-            	    String original = campotxt.getSelectedText();
-            	    String nuevoTexto;
-            	    String seleccionado = listacolor.getSelectedValue();
-
+                    int end = campotxt.getSelectionEnd();
+                    if (start == end) return;
+                    StyledEditorKit sek = (StyledEditorKit) campotxt.getEditorKit();
+                    int size = StyleConstants.getFontSize(sek.getInputAttributes());
+                    String original = campotxt.getSelectedText();
+                    String nuevoTexto;
+                    String seleccionado = listacolor.getSelectedValue();
+                    if (seleccionado == null) {
+                        return;
+                    }
 
             	    switch (seleccionado) {
             	    case "Gris":
-            	        ultimoColorHTML = "#808080";
-            	        nuevoTexto = "<span style=\"background-color:" + ultimoColorHTML + "\">" + original + "</span>";
-            	        listacolor.clearSelection();
+            	    	 ultimoColorHTML = "#808080";
+                         nuevoTexto = spanConColor(original, ultimoColorHTML, size);
+             	        listacolor.clearSelection();
             	        break;
             	    case "Verde":
             	        ultimoColorHTML = "#90EE90";
-            	        nuevoTexto = "<span style=\"background-color:" + ultimoColorHTML + "\">" + original + "</span>";
+                        nuevoTexto = spanConColor(original, ultimoColorHTML, size);
             	        listacolor.clearSelection();
             	        break;
             	    case "Amarillo":
-            	        ultimoColorHTML = "#CC9900";
-            	        nuevoTexto = "<span style=\"background-color:" + ultimoColorHTML + "\">" + original + "</span>";
-            	        listacolor.clearSelection();
+            	    	   ultimoColorHTML = "#CC9900";
+                           nuevoTexto = spanConColor(original, ultimoColorHTML, size);
+               	        listacolor.clearSelection();
             	        break;
             	    case "Celeste":
-            	        ultimoColorHTML = "#87CEEB";
-            	        nuevoTexto = "<span style=\"background-color:" + ultimoColorHTML + "\">" + original + "</span>";
-            	        listacolor.clearSelection();
+            	    	   ultimoColorHTML = "#87CEEB";
+                           nuevoTexto = spanConColor(original, ultimoColorHTML, size);
+               	        listacolor.clearSelection();
             	        break;
             	    case "Sin destacar":
             	        ultimoColorHTML = "#FFFFFF";
-            	        nuevoTexto = "<span style=\"background-color:" + ultimoColorHTML + "; color:#000000\">" + original + "</span>";
+                        nuevoTexto = spanConColor(original, ultimoColorHTML, size);
             	        listacolor.clearSelection();
             	        break;
             	    default:
@@ -900,8 +923,30 @@ class Formulario extends JFrame {
 
 class VentanaNota extends JFrame {
 	public String ultimoColorHTML = null;
-	StringWriter writer = new StringWriter();
-	HTMLEditorKit kit = new HTMLEditorKit();
+    StringWriter writer = new StringWriter();
+    HTMLEditorKit kit = new HTMLEditorKit();
+
+    private String spanConColor(String texto, String color, int size) {
+        String extra = color.equals("#FFFFFF") ? "; color:#000000" : "";
+        String[] partes = texto.split("\\r?\\n", -1);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < partes.length; i++) {
+            String parte = partes[i];
+            if (!parte.isEmpty()) {
+                sb.append("<span style=\"background-color:")
+                  .append(color)
+                  .append("; font-size:")
+                  .append(size)
+                  .append("pt")
+                  .append(extra)
+                  .append("\">")
+                  .append(parte)
+                  .append("</span>");
+            }
+            if (i < partes.length - 1) sb.append("<br>");
+        }
+        return sb.toString();
+    }
 	
 	private BufferedImage toBufferedImage(Image img) {
 	    if (img instanceof BufferedImage) {
@@ -1107,14 +1152,11 @@ class VentanaNota extends JFrame {
 
                     if (start >= end || ultimoColorHTML == null) return;
 
-                    String original = areatexto.getDocument().getText(start, end - start);
-                    String nuevoTexto;
+                    StyledEditorKit sek = (StyledEditorKit) areatexto.getEditorKit();
+                    int size = StyleConstants.getFontSize(sek.getInputAttributes());
 
-                    if (ultimoColorHTML.equals("#FFFFFF")) {
-                        nuevoTexto = "<span style=\"background-color:#FFFFFF; color:#000000\">" + original + "</span>";
-                    } else {
-                        nuevoTexto = "<span style=\"background-color:" + ultimoColorHTML + "\">" + original + "</span>";
-                    }
+                    String original = areatexto.getDocument().getText(start, end - start);
+                    String nuevoTexto = spanConColor(original, ultimoColorHTML, size);
 
                     javax.swing.text.Document doc = areatexto.getDocument();
                     doc.remove(start, end - start);
@@ -1247,38 +1289,40 @@ class VentanaNota extends JFrame {
         listacolor.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
             	try {
-            	    int start = areatexto.getSelectionStart();
-            	    int end = areatexto.getSelectionEnd();
-            	    if (start == end) return;
+            		int start = areatexto.getSelectionStart();
+                    int end = areatexto.getSelectionEnd();
+                    if (start == end) return;
+                    StyledEditorKit sek = (StyledEditorKit) areatexto.getEditorKit();
+                    int size = StyleConstants.getFontSize(sek.getInputAttributes());
 
-            	    String seleccionado = listacolor.getSelectedValue();
-            	    String original = areatexto.getSelectedText();
-            	    String nuevoTexto;
+                    String seleccionado = listacolor.getSelectedValue();
+                    String original = areatexto.getSelectedText();
+                    String nuevoTexto;
 
             	    switch (seleccionado) {
             	    case "Gris":
             	        ultimoColorHTML = "#808080";
-            	        nuevoTexto = "<span style=\"background-color:" + ultimoColorHTML + "\">" + original + "</span>";
+                        nuevoTexto = spanConColor(original, ultimoColorHTML, size);
             	        listacolor.clearSelection();
             	        break;
             	    case "Verde":
             	        ultimoColorHTML = "#90EE90";
-            	        nuevoTexto = "<span style=\"background-color:" + ultimoColorHTML + "\">" + original + "</span>";
+                        nuevoTexto = spanConColor(original, ultimoColorHTML, size);
             	        listacolor.clearSelection();
             	        break;
             	    case "Amarillo":
-            	        ultimoColorHTML = "#CC9900";
-            	        nuevoTexto = "<span style=\"background-color:" + ultimoColorHTML + "\">" + original + "</span>";
-            	        listacolor.clearSelection();
+            	    	   ultimoColorHTML = "#CC9900";
+                           nuevoTexto = spanConColor(original, ultimoColorHTML, size);
+               	        listacolor.clearSelection();
             	        break;
             	    case "Celeste":
-            	        ultimoColorHTML = "#87CEEB";
-            	        nuevoTexto = "<span style=\"background-color:" + ultimoColorHTML + "\">" + original + "</span>";
-            	        listacolor.clearSelection();
+            	    	 ultimoColorHTML = "#87CEEB";
+                         nuevoTexto = spanConColor(original, ultimoColorHTML, size);
+             	        listacolor.clearSelection();
             	        break;
             	    case "Sin destacar":
-            	        ultimoColorHTML = "#FFFFFF";
-            	        nuevoTexto = "<span style=\"background-color:" + ultimoColorHTML + "; color:#000000\">" + original + "</span>";
+            	    	ultimoColorHTML = "#FFFFFF";
+                        nuevoTexto = spanConColor(original, ultimoColorHTML, size);
             	        listacolor.clearSelection();
             	        break;
             	    default:
