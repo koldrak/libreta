@@ -492,26 +492,29 @@ class Formulario extends JFrame {
       public String ultimoColorHTML = null;
       ArrayList<ImageIcon> imagenesPegadas = new ArrayList<>();
 
-      private String spanConColor(String texto, String color, int size) {
+      private void insertarConColor(HTMLDocument doc, int offset, String texto,
+              String color, int size) throws Exception {
           String extra = color.equals("#FFFFFF") ? "; color:#000000" : "";
           String[] partes = texto.split("\\r?\\n", -1);
-          StringBuilder sb = new StringBuilder();
+          int pos = offset;
+          int prevLen = doc.getLength();
           for (int i = 0; i < partes.length; i++) {
               String parte = partes[i];
               if (!parte.isEmpty()) {
-                  sb.append("<span style=\"background-color:")
-                    .append(color)
-                    .append("; font-size:")
-                    .append(size)
-                    .append("pt")
-                    .append(extra)
-                    .append("\">")
-                    .append(parte)
-                    .append("</span>");
+                  String html = "<span style=\"background-color:" + color
+                          + "; font-size:" + size + "pt" + extra + "\">"
+                          + parte + "</span>";
+                  kit.insertHTML(doc, pos, html, 0, 0, HTML.Tag.SPAN);
+                  int newLen = doc.getLength();
+                  pos += newLen - prevLen;
+                  prevLen = newLen;
               }
-              if (i < partes.length - 1) sb.append("<br>");
+              if (i < partes.length - 1) {
+                  doc.insertString(pos, "\n", null);
+                  pos++;
+                  prevLen = doc.getLength();
+              }
           }
-          return sb.toString();
       }
 
 	private BufferedImage toBufferedImage(Image img) {
@@ -681,12 +684,9 @@ class Formulario extends JFrame {
                     int size = StyleConstants.getFontSize(sek.getInputAttributes());
 
                     String original = campotxt.getDocument().getText(start, end - start);
-                    String nuevoTexto = spanConColor(original, ultimoColorHTML, size);
-
-                    javax.swing.text.Document doc = campotxt.getDocument();
+                    HTMLDocument doc = (HTMLDocument) campotxt.getDocument();
                     doc.remove(start, end - start);
-                    kit.insertHTML((HTMLDocument) doc, start, nuevoTexto, 0, 0, HTML.Tag.SPAN);
-
+                    insertarConColor(doc, start, original, ultimoColorHTML, size);
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }
@@ -810,56 +810,41 @@ class Formulario extends JFrame {
                     if (start == end) return;
                     StyledEditorKit sek = (StyledEditorKit) campotxt.getEditorKit();
                     int size = StyleConstants.getFontSize(sek.getInputAttributes());
-                    String original = campotxt.getSelectedText();
-                    String nuevoTexto;
+                    String original = campotxt.getSelectedText();    
                     String seleccionado = listacolor.getSelectedValue();
                     if (seleccionado == null) {
                         return;
                     }
 
-            	    switch (seleccionado) {
-            	    case "Gris":
-            	    	 ultimoColorHTML = "#808080";
-                         nuevoTexto = spanConColor(original, ultimoColorHTML, size);
-             	        listacolor.clearSelection();
-            	        break;
-            	    case "Verde":
-            	        ultimoColorHTML = "#90EE90";
-                        nuevoTexto = spanConColor(original, ultimoColorHTML, size);
-            	        listacolor.clearSelection();
-            	        break;
-            	    case "Amarillo":
-            	    	   ultimoColorHTML = "#CC9900";
-                           nuevoTexto = spanConColor(original, ultimoColorHTML, size);
-               	        listacolor.clearSelection();
-            	        break;
-            	    case "Celeste":
-            	    	   ultimoColorHTML = "#87CEEB";
-                           nuevoTexto = spanConColor(original, ultimoColorHTML, size);
-               	        listacolor.clearSelection();
-            	        break;
-            	    case "Sin destacar":
-            	        ultimoColorHTML = "#FFFFFF";
-                        nuevoTexto = spanConColor(original, ultimoColorHTML, size);
-            	        listacolor.clearSelection();
-            	        break;
-            	    default:
-            	        nuevoTexto = original;
-            	}
-
-          
-            	    javax.swing.text.Document doc = campotxt.getDocument();
-            	    doc.remove(start, end - start);
-            	    kit.insertHTML((HTMLDocument) doc, start, nuevoTexto, 0, 0, HTML.Tag.SPAN);
-
-
+                    switch (seleccionado) {
+                    case "Gris":
+                        ultimoColorHTML = "#808080";
+                        break;
+                    case "Verde":
+                        ultimoColorHTML = "#90EE90";
+                        break;
+                    case "Amarillo":
+                        ultimoColorHTML = "#CC9900";
+                        break;
+                    case "Celeste":
+                        ultimoColorHTML = "#87CEEB";
+                        break;
+                    case "Sin destacar":
+                        ultimoColorHTML = "#FFFFFF";
+                        break;
+                    default:
+                        break;
+                }
+                    HTMLDocument doc = (HTMLDocument) campotxt.getDocument();
+                    doc.remove(start, end - start);
+                    insertarConColor(doc, start, original, ultimoColorHTML, size);
+                    listacolor.clearSelection();
+                    
             	} catch (Exception ex) {
             	    ex.printStackTrace();
             	}
 
             	listacolor.setVisible(false);
-
-
 
             }
         });
@@ -926,26 +911,30 @@ class VentanaNota extends JFrame {
     StringWriter writer = new StringWriter();
     HTMLEditorKit kit = new HTMLEditorKit();
 
-    private String spanConColor(String texto, String color, int size) {
+
+    private void insertarConColor(HTMLDocument doc, int offset, String texto,
+                                  String color, int size) throws Exception {
         String extra = color.equals("#FFFFFF") ? "; color:#000000" : "";
         String[] partes = texto.split("\\r?\\n", -1);
-        StringBuilder sb = new StringBuilder();
+        int pos = offset;
+        int prevLen = doc.getLength();
         for (int i = 0; i < partes.length; i++) {
             String parte = partes[i];
             if (!parte.isEmpty()) {
-                sb.append("<span style=\"background-color:")
-                  .append(color)
-                  .append("; font-size:")
-                  .append(size)
-                  .append("pt")
-                  .append(extra)
-                  .append("\">")
-                  .append(parte)
-                  .append("</span>");
+            	String html = "<span style=\"background-color:" + color
+                        + "; font-size:" + size + "pt" + extra + "\">"
+                        + parte + "</span>";
+                kit.insertHTML(doc, pos, html, 0, 0, HTML.Tag.SPAN);
+                int newLen = doc.getLength();
+                pos += newLen - prevLen;
+                prevLen = newLen;
             }
-            if (i < partes.length - 1) sb.append("<br>");
+            if (i < partes.length - 1) {
+                doc.insertString(pos, "\n", null);
+                pos++;
+                prevLen = doc.getLength();
+            }
         }
-        return sb.toString();
     }
 	
 	private BufferedImage toBufferedImage(Image img) {
@@ -1156,11 +1145,9 @@ class VentanaNota extends JFrame {
                     int size = StyleConstants.getFontSize(sek.getInputAttributes());
 
                     String original = areatexto.getDocument().getText(start, end - start);
-                    String nuevoTexto = spanConColor(original, ultimoColorHTML, size);
-
-                    javax.swing.text.Document doc = areatexto.getDocument();
+                    HTMLDocument doc = (HTMLDocument) areatexto.getDocument();
                     doc.remove(start, end - start);
-                    kit.insertHTML((HTMLDocument) doc, start, nuevoTexto, 0, 0, HTML.Tag.SPAN);
+                    insertarConColor(doc, start, original, ultimoColorHTML, size);
 
                 } catch (Exception ex) {
                     ex.printStackTrace();
@@ -1299,40 +1286,29 @@ class VentanaNota extends JFrame {
                     String original = areatexto.getSelectedText();
                     String nuevoTexto;
 
-            	    switch (seleccionado) {
-            	    case "Gris":
-            	        ultimoColorHTML = "#808080";
-                        nuevoTexto = spanConColor(original, ultimoColorHTML, size);
-            	        listacolor.clearSelection();
-            	        break;
-            	    case "Verde":
-            	        ultimoColorHTML = "#90EE90";
-                        nuevoTexto = spanConColor(original, ultimoColorHTML, size);
-            	        listacolor.clearSelection();
-            	        break;
-            	    case "Amarillo":
-            	    	   ultimoColorHTML = "#CC9900";
-                           nuevoTexto = spanConColor(original, ultimoColorHTML, size);
-               	        listacolor.clearSelection();
-            	        break;
-            	    case "Celeste":
-            	    	 ultimoColorHTML = "#87CEEB";
-                         nuevoTexto = spanConColor(original, ultimoColorHTML, size);
-             	        listacolor.clearSelection();
-            	        break;
-            	    case "Sin destacar":
-            	    	ultimoColorHTML = "#FFFFFF";
-                        nuevoTexto = spanConColor(original, ultimoColorHTML, size);
-            	        listacolor.clearSelection();
-            	        break;
-            	    default:
-            	        nuevoTexto = original;
-            	}
-          
-            	    doc.remove(start, end - start);
-            	    kit.insertHTML((HTMLDocument) doc, start, nuevoTexto, 0, 0, HTML.Tag.SPAN);
+                    switch (seleccionado) {
+                    case "Gris":
+                        ultimoColorHTML = "#808080";
+                        break;
+                    case "Verde":
+                        ultimoColorHTML = "#90EE90";
+                        break;
+                    case "Amarillo":
+                        ultimoColorHTML = "#CC9900";
+                        break;
+                    case "Celeste":
+                        ultimoColorHTML = "#87CEEB";
+                        break;
+                    case "Sin destacar":
+                        ultimoColorHTML = "#FFFFFF";
+                        break;
+                    default:
+                        break;
+                }
 
-
+                    doc.remove(start, end - start);
+                    insertarConColor(doc, start, original, ultimoColorHTML, size);
+                    listacolor.clearSelection();
             	} catch (Exception ex) {
             	    ex.printStackTrace();
             	}
