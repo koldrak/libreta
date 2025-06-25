@@ -549,11 +549,52 @@ class Nota implements Serializable {
 }
 
 class Formulario extends JFrame {
-	  StringWriter writer = new StringWriter();
+	StringWriter writer = new StringWriter();
       HTMLEditorKit kit = new HTMLEditorKit();
       public String ultimoColorHTML = null;
       ArrayList<ImageIcon> imagenesPegadas = new ArrayList<>();
+      private Font pacificoFont;
 
+      private void cargarFuenteManuscrita() {
+          try {
+              File fontFile = new File("Pacifico-Regular.ttf");
+              if (fontFile.exists()) {
+                  pacificoFont = Font.createFont(Font.TRUETYPE_FONT, fontFile).deriveFont(16f);
+                  GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+                  ge.registerFont(pacificoFont);
+              } else {
+                  pacificoFont = new Font("Serif", Font.ITALIC, 16);
+              }
+          } catch (IOException | FontFormatException e) {
+              pacificoFont = new Font("Serif", Font.ITALIC, 16);
+          }
+      }
+
+      private void actualizarFuente(JTextPane area, JSpinner spinner, JComboBox<String> combo) {
+          int nuevoTamano = (Integer) spinner.getValue();
+          String tipoFuente = (String) combo.getSelectedItem();
+
+          Font base;
+          if ("Manuscrita (Pacifico)".equals(tipoFuente) && pacificoFont != null) {
+              base = pacificoFont;
+          } else {
+              base = new Font("Arial", Font.PLAIN, nuevoTamano);
+          }
+
+          area.setFont(base.deriveFont((float) nuevoTamano));
+
+          StyledDocument doc = area.getStyledDocument();
+          SimpleAttributeSet attrs = new SimpleAttributeSet();
+          StyleConstants.setFontSize(attrs, nuevoTamano);
+          StyleConstants.setFontFamily(attrs, base.getFamily());
+          doc.setCharacterAttributes(0, doc.getLength(), attrs, false);
+
+          StyledEditorKit sek = (StyledEditorKit) area.getEditorKit();
+          sek.getInputAttributes().addAttribute(StyleConstants.FontSize, nuevoTamano);
+          sek.getInputAttributes().addAttribute(StyleConstants.FontFamily, base.getFamily());
+
+          area.repaint();
+      }
       private void insertarConColor(HTMLDocument doc, int offset, String texto,
               String color, int size) throws Exception {
           String extra = color.equals("#FFFFFF") ? "; color:#000000" : "";
@@ -601,6 +642,7 @@ class Formulario extends JFrame {
 	}
 
     public Formulario() {
+    	cargarFuenteManuscrita();
         this.setTitle("FORMULARIO");
         this.setSize(500, 400);
         this.setAlwaysOnTop(true);
@@ -929,7 +971,7 @@ class Formulario extends JFrame {
         	}
         });
         
-        //Spinner
+        //Spinner y combo para fuente
         Integer[] datos = {8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62, 64, 66, 68, 70, 72, 74, 76, 78, 80, 82, 84, 86, 88, 90, 92, 94, 96, 98, 100 };
 
         JSpinner lista = new JSpinner(new SpinnerListModel(datos));
@@ -937,18 +979,12 @@ class Formulario extends JFrame {
         lista.setVisible(true);
         lista.setValue(16);
 
-        lista.addChangeListener(e -> {
-            int nuevoTamaño = (int) lista.getValue();
-            StyledDocument doc = campotxt.getStyledDocument();
-            SimpleAttributeSet attrs = new SimpleAttributeSet();
-            StyleConstants.setFontSize(attrs, nuevoTamaño);
-            doc.setCharacterAttributes(0, doc.getLength(), attrs, false);
+        String[] fuentes = {"Arial", "Manuscrita (Pacifico)"};
+        JComboBox<String> comboFuente = new JComboBox<>(fuentes);
 
-            StyledEditorKit sek = (StyledEditorKit) campotxt.getEditorKit();
-            sek.getInputAttributes().addAttribute(StyleConstants.FontSize, nuevoTamaño);
-
-            campotxt.repaint();
-        });
+        lista.addChangeListener(e -> actualizarFuente(campotxt, lista, comboFuente));
+        comboFuente.addActionListener(e -> actualizarFuente(campotxt, lista, comboFuente));
+        actualizarFuente(campotxt, lista, comboFuente);
 
         
         this.add(Superior, BorderLayout.NORTH);
@@ -963,8 +999,9 @@ class Formulario extends JFrame {
         Inferior.add(destacar);
         Inferior.add(listacolor);
         Inferior.add(lista);
+        Inferior.add(comboFuente);
         Inferior.add (botcrearnota);
-  
+    
 
        
         //Cierre
@@ -973,10 +1010,51 @@ class Formulario extends JFrame {
 }
 
 class VentanaNota extends JFrame {
-	public String ultimoColorHTML = null;
+    public String ultimoColorHTML = null;
     StringWriter writer = new StringWriter();
     HTMLEditorKit kit = new HTMLEditorKit();
+    private Font pacificoFont;
 
+    private void cargarFuenteManuscrita() {
+        try {
+            File fontFile = new File("Pacifico-Regular.ttf");
+            if (fontFile.exists()) {
+                pacificoFont = Font.createFont(Font.TRUETYPE_FONT, fontFile).deriveFont(16f);
+                GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+                ge.registerFont(pacificoFont);
+            } else {
+                pacificoFont = new Font("Serif", Font.ITALIC, 16);
+            }
+        } catch (IOException | FontFormatException e) {
+            pacificoFont = new Font("Serif", Font.ITALIC, 16);
+        }
+    }
+
+    private void actualizarFuente(JTextPane area, JSpinner spinner, JComboBox<String> combo) {
+        int nuevoTamano = (Integer) spinner.getValue();
+        String tipoFuente = (String) combo.getSelectedItem();
+
+        Font base;
+        if ("Manuscrita (Pacifico)".equals(tipoFuente) && pacificoFont != null) {
+            base = pacificoFont;
+        } else {
+            base = new Font("Arial", Font.PLAIN, nuevoTamano);
+        }
+
+        area.setFont(base.deriveFont((float) nuevoTamano));
+
+        StyledDocument doc = area.getStyledDocument();
+        SimpleAttributeSet attrs = new SimpleAttributeSet();
+        StyleConstants.setFontSize(attrs, nuevoTamano);
+        StyleConstants.setFontFamily(attrs, base.getFamily());
+        doc.setCharacterAttributes(0, doc.getLength(), attrs, false);
+
+        StyledEditorKit sek = (StyledEditorKit) area.getEditorKit();
+        sek.getInputAttributes().addAttribute(StyleConstants.FontSize, nuevoTamano);
+        sek.getInputAttributes().addAttribute(StyleConstants.FontFamily, base.getFamily());
+
+        area.repaint();
+    }
 
     private void insertarConColor(HTMLDocument doc, int offset, String texto,
                                   String color, int size) throws Exception {
@@ -1026,8 +1104,9 @@ class VentanaNota extends JFrame {
 	public VentanaNota(Nota not) {
         this.setTitle(not.titulo);
         this.setAlwaysOnTop(true);
-        this.setSize(400, 400);
+        this.setSize(500, 400);
         this.setLayout(new BorderLayout());
+        cargarFuenteManuscrita();
         // Campo para editar el titulo
         JPanel panelSuperior = new JPanel();
         JLabel labelTitulo = new JLabel("Titulo:");
@@ -1325,17 +1404,12 @@ class VentanaNota extends JFrame {
         lista.setVisible(true);
         lista.setValue(16);
 
-        lista.addChangeListener(e -> {
-            int nuevoTamaño = (int) lista.getValue();
-            SimpleAttributeSet attrs = new SimpleAttributeSet();
-            StyleConstants.setFontSize(attrs, nuevoTamaño);
-            doc.setCharacterAttributes(0, doc.getLength(), attrs, false);
+        String[] fuentes = {"Arial", "Manuscrita (Pacifico)"};
+        JComboBox<String> comboFuente = new JComboBox<>(fuentes);
 
-            StyledEditorKit sek = (StyledEditorKit) areatexto.getEditorKit();
-            sek.getInputAttributes().addAttribute(StyleConstants.FontSize, nuevoTamaño);
-
-            areatexto.repaint();
-        });
+        lista.addChangeListener(e -> actualizarFuente(areatexto, lista, comboFuente));
+        comboFuente.addActionListener(e -> actualizarFuente(areatexto, lista, comboFuente));
+        actualizarFuente(areatexto, lista, comboFuente);
    
 
         //Jlist seleccion de color 
@@ -1408,7 +1482,7 @@ class VentanaNota extends JFrame {
         panelInferior.add(listacolor);
         panelInferior.add(guardar);
         panelInferior.add(lista);
-
+        panelInferior.add(comboFuente);
         
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         this.setVisible(true);
