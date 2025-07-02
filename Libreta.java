@@ -151,10 +151,13 @@ public class Libreta {
                         JPopupMenu menu = new JPopupMenu();
                         JMenuItem mExportar = new JMenuItem("Exportar Word");
                         JMenuItem mRecuperar = new JMenuItem("Recuperar Data");
+                        JMenuItem mStats = new JMenuItem("Estadisticas");
                         menu.add(mExportar);
                         menu.add(mRecuperar);
+                        menu.add(mStats);
                         mExportar.addActionListener(ev -> exportarNotasAWord());
                         mRecuperar.addActionListener(ev -> recuperarData());
+                        mStats.addActionListener(ev -> mostrarEstadisticas());
                         menu.show(boton2, 0, boton2.getHeight());
                     }
             }
@@ -336,6 +339,89 @@ public class Libreta {
         } catch (Exception ex) {
             ex.printStackTrace();
             JOptionPane.showMessageDialog(null, "Error al agrupar: " + ex.getMessage());
+        }
+    }
+    
+
+    public static void mostrarEstadisticas() {
+        if (todasLasNotas.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No hay notas para analizar");
+            return;
+        }
+
+        Map<String, Integer> porDia = new LinkedHashMap<>();
+        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+        Map<String, Integer> porEtiqueta = new LinkedHashMap<>();
+        int totalChars = 0;
+
+        for (Nota n : todasLasNotas) {
+            String dia;
+            if (n.fechaCreacion != null) {
+                dia = df.format(n.fechaCreacion);
+            } else {
+                dia = "sin fecha";
+            }
+            porDia.put(dia, porDia.getOrDefault(dia, 0) + 1);
+
+            String titulo = n.titulo == null ? "" : n.titulo;
+            String etiqueta = titulo.split("/", 2)[0].trim();
+            if (etiqueta.isEmpty()) etiqueta = "(sin etiqueta)";
+            porEtiqueta.put(etiqueta, porEtiqueta.getOrDefault(etiqueta, 0) + 1);
+
+            if (n.contenidoHTML != null) totalChars += n.contenidoHTML.length();
+        }
+
+        int promedio = totalChars / todasLasNotas.size();
+
+        JFrame frame = new JFrame("Estadisticas");
+        frame.setSize(500, 400);
+        frame.setLocationRelativeTo(null);
+        frame.setLayout(new BorderLayout());
+
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.addTab("Por día", new BarChartPanel(porDia));
+        tabs.addTab("Por etiqueta", new BarChartPanel(porEtiqueta));
+
+        JLabel lblProm = new JLabel("Promedio de caracteres por nota: " + promedio);
+        lblProm.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        frame.add(tabs, BorderLayout.CENTER);
+        frame.add(lblProm, BorderLayout.SOUTH);
+        frame.setVisible(true);
+    }
+
+    static class BarChartPanel extends JPanel {
+        Map<String, Integer> data;
+
+        BarChartPanel(Map<String, Integer> data) {
+            this.data = data;
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            if (data == null || data.isEmpty()) return;
+
+            int width = getWidth() - 20;
+            int height = getHeight() - 40;
+            int barWidth = Math.max(20, width / data.size());
+            int maxVal = Collections.max(data.values());
+
+            int x = 10;
+            g.setFont(g.getFont().deriveFont(10f));
+            for (Map.Entry<String, Integer> e : data.entrySet()) {
+                int val = e.getValue();
+                int barHeight = (int) ((double) val / maxVal * (height - 20));
+                g.setColor(new Color(120, 170, 250));
+                g.fillRect(x, height - barHeight, barWidth - 5, barHeight);
+                g.setColor(Color.BLACK);
+                g.drawRect(x, height - barHeight, barWidth - 5, barHeight);
+                String label = e.getKey();
+                if (label.length() > 8) label = label.substring(0, 7) + "…";
+                g.drawString(label, x, height + 12);
+                g.drawString(String.valueOf(val), x, height - barHeight - 5);
+                x += barWidth;
+            }
         }
     }
     /**
