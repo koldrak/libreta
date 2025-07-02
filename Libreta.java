@@ -45,6 +45,7 @@ import java.util.Map;
 import java.util.LinkedHashMap;
 import java.awt.geom.AffineTransform;
 import java.util.TreeMap;
+import java.util.Calendar;
 
 public class Libreta {
     static DefaultListModel <Nota> Notas = new DefaultListModel <>();
@@ -352,6 +353,7 @@ public class Libreta {
         }
 
         Map<String, Integer> porDia = new TreeMap<>();
+        Map<String, Color> colorDia = new LinkedHashMap<>();
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
         Map<String, Integer> porEtiqueta = new LinkedHashMap<>();
         Map<String, Color> colorEtiqueta = new LinkedHashMap<>();
@@ -359,8 +361,12 @@ public class Libreta {
 
         for (Nota n : todasLasNotas) {
             if (n.fechaCreacion != null) {
-            	  String dia = df.format(n.fechaCreacion);
-                  porDia.put(dia, porDia.getOrDefault(dia, 0) + 1);
+                String dia = df.format(n.fechaCreacion);
+                porDia.put(dia, porDia.getOrDefault(dia, 0) + 1);
+                Calendar cal = Calendar.getInstance();
+                cal.setTime(n.fechaCreacion);
+                int mes = cal.get(Calendar.MONTH) + 1;
+                colorDia.put(dia, colorParaMes(mes));
             }
 
             String titulo = n.titulo == null ? "" : n.titulo;
@@ -381,7 +387,7 @@ public class Libreta {
         frame.setLayout(new BorderLayout());
 
         JTabbedPane tabs = new JTabbedPane();
-        tabs.addTab("Por día", new BarChartPanel(porDia));
+        tabs.addTab("Por día", new BarChartPanel(porDia, colorDia));
         tabs.addTab("Por etiqueta", new BarChartPanel(porEtiqueta, colorEtiqueta));
 
         JLabel lblProm = new JLabel("Promedio de caracteres por nota: " + promedio);
@@ -442,6 +448,10 @@ public class Libreta {
                 x += barWidth;
             }
         }
+    }
+    private static Color colorParaMes(int mes) {
+        float hue = (mes - 1) / 12f;
+        return Color.getHSBColor(hue, 0.6f, 0.85f);
     }
     /**
      * Reemplaza los saltos de línea ("\n") del documento por etiquetas
