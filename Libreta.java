@@ -43,6 +43,7 @@ import org.jsoup.Jsoup;
 import javax.swing.text.DefaultEditorKit;
 import java.util.Map;
 import java.util.LinkedHashMap;
+import java.awt.geom.AffineTransform;
 
 public class Libreta {
     static DefaultListModel <Nota> Notas = new DefaultListModel <>();
@@ -352,6 +353,7 @@ public class Libreta {
         Map<String, Integer> porDia = new LinkedHashMap<>();
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
         Map<String, Integer> porEtiqueta = new LinkedHashMap<>();
+        Map<String, Color> colorEtiqueta = new LinkedHashMap<>();
         int totalChars = 0;
 
         for (Nota n : todasLasNotas) {
@@ -367,7 +369,9 @@ public class Libreta {
             String etiqueta = titulo.split("/", 2)[0].trim();
             if (etiqueta.isEmpty()) etiqueta = "(sin etiqueta)";
             porEtiqueta.put(etiqueta, porEtiqueta.getOrDefault(etiqueta, 0) + 1);
-
+            if (!colorEtiqueta.containsKey(etiqueta)) {
+                colorEtiqueta.put(etiqueta, Color.decode(colorDesdeTitulo(etiqueta)));
+            }
             if (n.contenidoHTML != null) totalChars += n.contenidoHTML.length();
         }
 
@@ -380,7 +384,7 @@ public class Libreta {
 
         JTabbedPane tabs = new JTabbedPane();
         tabs.addTab("Por día", new BarChartPanel(porDia));
-        tabs.addTab("Por etiqueta", new BarChartPanel(porEtiqueta));
+        tabs.addTab("Por etiqueta", new BarChartPanel(porEtiqueta, colorEtiqueta));
 
         JLabel lblProm = new JLabel("Promedio de caracteres por nota: " + promedio);
         lblProm.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -392,9 +396,15 @@ public class Libreta {
 
     static class BarChartPanel extends JPanel {
         Map<String, Integer> data;
-
+        Map<String, Color> colores;
+        
         BarChartPanel(Map<String, Integer> data) {
+        	   this(data, null);
+        }
+
+        BarChartPanel(Map<String, Integer> data, Map<String, Color> colores) {
             this.data = data;
+            this.colores = colores;
         }
 
         @Override
@@ -412,13 +422,23 @@ public class Libreta {
             for (Map.Entry<String, Integer> e : data.entrySet()) {
                 int val = e.getValue();
                 int barHeight = (int) ((double) val / maxVal * (height - 20));
-                g.setColor(new Color(120, 170, 250));
+                Color c = new Color(120, 170, 250);
+                if (colores != null && colores.containsKey(e.getKey())) {
+                    c = colores.get(e.getKey());
+                }
+                g.setColor(c);
                 g.fillRect(x, height - barHeight, barWidth - 5, barHeight);
                 g.setColor(Color.BLACK);
                 g.drawRect(x, height - barHeight, barWidth - 5, barHeight);
                 String label = e.getKey();
                 if (label.length() > 8) label = label.substring(0, 7) + "…";
-                g.drawString(label, x, height + 12);
+                Graphics2D g2 = (Graphics2D) g;
+                AffineTransform old = g2.getTransform();
+                int labelX = x + (barWidth - 5) / 2;
+                int labelY = height + 15;
+                g2.rotate(-Math.PI / 2, labelX, labelY);
+                g2.drawString(label, labelX, labelY);
+                g2.setTransform(old);
                 g.drawString(String.valueOf(val), x, height - barHeight - 5);
                 x += barWidth;
             }
