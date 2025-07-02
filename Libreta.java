@@ -44,6 +44,7 @@ import javax.swing.text.DefaultEditorKit;
 import java.util.Map;
 import java.util.LinkedHashMap;
 import java.awt.geom.AffineTransform;
+import java.util.TreeMap;
 
 public class Libreta {
     static DefaultListModel <Nota> Notas = new DefaultListModel <>();
@@ -350,20 +351,17 @@ public class Libreta {
             return;
         }
 
-        Map<String, Integer> porDia = new LinkedHashMap<>();
+        Map<String, Integer> porDia = new TreeMap<>();
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
         Map<String, Integer> porEtiqueta = new LinkedHashMap<>();
         Map<String, Color> colorEtiqueta = new LinkedHashMap<>();
         int totalChars = 0;
 
         for (Nota n : todasLasNotas) {
-            String dia;
             if (n.fechaCreacion != null) {
-                dia = df.format(n.fechaCreacion);
-            } else {
-                dia = "sin fecha";
+            	  String dia = df.format(n.fechaCreacion);
+                  porDia.put(dia, porDia.getOrDefault(dia, 0) + 1);
             }
-            porDia.put(dia, porDia.getOrDefault(dia, 0) + 1);
 
             String titulo = n.titulo == null ? "" : n.titulo;
             String etiqueta = titulo.split("/", 2)[0].trim();
@@ -431,12 +429,15 @@ public class Libreta {
                 g.setColor(Color.BLACK);
                 g.drawRect(x, height - barHeight, barWidth - 5, barHeight);
                 String label = e.getKey();
-                if (label.length() > 8) label = label.substring(0, 7) + "…";
                 FontMetrics fm = g.getFontMetrics();
                 int labelWidth = fm.stringWidth(label);
-                int labelX = x + (barWidth - 5 - labelWidth) / 2;
-                int labelY = height - barHeight / 2 + fm.getAscent() / 2;
-                g.drawString(label, labelX, labelY);
+                int labelX = x + (barWidth - 5) / 2;
+                int labelY = height - barHeight / 2;
+                Graphics2D g2d = (Graphics2D) g.create();
+                g2d.translate(labelX, labelY);
+                g2d.rotate(-Math.PI / 2);
+                g2d.drawString(label, -labelWidth / 2, fm.getAscent() / 2);
+                g2d.dispose();
                 g.drawString(String.valueOf(val), x, height - barHeight - 5);
                 x += barWidth;
             }
