@@ -432,13 +432,11 @@ public class Libreta {
                 g.drawRect(x, height - barHeight, barWidth - 5, barHeight);
                 String label = e.getKey();
                 if (label.length() > 8) label = label.substring(0, 7) + "…";
-                Graphics2D g2 = (Graphics2D) g;
-                AffineTransform old = g2.getTransform();
-                int labelX = x + (barWidth - 5) / 2;
-                int labelY = height + 15;
-                g2.rotate(-Math.PI / 2, labelX, labelY);
-                g2.drawString(label, labelX, labelY);
-                g2.setTransform(old);
+                FontMetrics fm = g.getFontMetrics();
+                int labelWidth = fm.stringWidth(label);
+                int labelX = x + (barWidth - 5 - labelWidth) / 2;
+                int labelY = height - barHeight / 2 + fm.getAscent() / 2;
+                g.drawString(label, labelX, labelY);
                 g.drawString(String.valueOf(val), x, height - barHeight - 5);
                 x += barWidth;
             }
