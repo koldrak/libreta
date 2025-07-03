@@ -121,11 +121,18 @@ public class Libreta {
     
 	public static void main(String[] args) {
 
-		todasLasNotas = Nota.cargarNotas();
-		todasLasNotas.sort((a, b) -> a.titulo.compareToIgnoreCase(b.titulo));
-		for (Nota n : todasLasNotas) {
-			Notas.addElement(n);
-		}
+        todasLasNotas = Nota.cargarNotas();
+
+        // Remove notes with empty titles
+        boolean removed = todasLasNotas.removeIf(n -> n.titulo == null || n.titulo.trim().isEmpty());
+        if (removed) {
+                Nota.guardarNotas(new ArrayList<>(todasLasNotas));
+        }
+
+        todasLasNotas.sort((a, b) -> a.titulo.compareToIgnoreCase(b.titulo));
+        for (Nota n : todasLasNotas) {
+                Notas.addElement(n);
+        }
 
 		 JFrame mainmenu = new JFrame("Libreta de apuntes");
          mainmenu.setSize(353, 400);
@@ -949,8 +956,14 @@ class Formulario extends JFrame {
         botcrearnota.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 String valortit = campotit.getText(); // obtener valor de text field
-               	String valortxt = campotxt.getText(); // obtener valor de text field
-               	
+                if (valortit == null || valortit.trim().isEmpty()) {
+                    JOptionPane.showMessageDialog(Formulario.this,
+                            "El título no puede estar vacío", "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                String valortxt = campotxt.getText(); // obtener valor de text field
+                
                 campotxt.setContentType("text/html");
                 campotxt.getDocument().putProperty("IgnoreCharsetDirective", Boolean.TRUE);
             	try {
@@ -1449,9 +1462,16 @@ class VentanaNota extends JFrame {
         //Boton de guardado
         JButton guardar = new JButton("Guardar cambios");
         guardar.addActionListener(e -> {
+            String nuevoTitulo = campoTitulo.getText();
+            if (nuevoTitulo == null || nuevoTitulo.trim().isEmpty()) {
+                JOptionPane.showMessageDialog(VentanaNota.this,
+                        "El título no puede estar vacío", "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
             int imgIndex = 0;
             // Actualiza el titulo de la nota con el valor del campo
-            not.titulo = campoTitulo.getText();
+            not.titulo = nuevoTitulo;
             VentanaNota.this.setTitle(not.titulo);
 
             try {
