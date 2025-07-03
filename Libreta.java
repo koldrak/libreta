@@ -489,6 +489,27 @@ public class Libreta {
             ex.printStackTrace();
         }
     }
+
+    /**
+     * Agrega la propiedad CSS 'white-space: pre-wrap' a la etiqueta <body>
+     * para conservar espacios e indentación al guardar la nota.
+     */
+    static String aplicarEstiloEspaciado(String html) {
+        // Añade 'white-space: pre-wrap' al elemento <body>, conservando
+        // cualquier atributo ya presente.
+        java.util.regex.Matcher m =
+            java.util.regex.Pattern.compile("(?i)<body([^>]*)>").matcher(html);
+        if (m.find()) {
+            String attrs = m.group(1);
+            if (attrs.toLowerCase().contains("style=")) {
+                String nuevo = attrs.replaceFirst("(?i)style\\s*=\\s*\"([^\"]*)\"",
+                        "style=\"$1; white-space: pre-wrap\"");
+                return m.replaceFirst("<body" + nuevo + ">");
+            }
+            return m.replaceFirst("<body" + attrs + " style=\"white-space: pre-wrap\">");
+        }
+        return html;
+    }
     // Convierte un color hexadecimal a un nombre aceptado por setTextHighlightColor
     private static String mapHighlight(String hex) {
         if (hex == null) return null;
@@ -1002,13 +1023,11 @@ class Formulario extends JFrame {
                             imgIndex++;
                         }
                     }
-                    // Reemplaza los saltos de línea por <br> antes de generar el HTML
-                    Libreta.reemplazarSaltosDeLinea((HTMLDocument) doc, kit);
-
+                  
                     // Ahora sí, escribir HTML ya procesado
                     writer = new StringWriter(); // reinicia
                     kit.write(writer, doc, 0, doc.getLength());
-                    String htmlFinal = writer.toString();
+                    String htmlFinal = Libreta.aplicarEstiloEspaciado(writer.toString());
 
                     Nota notax = new Nota(valortit, htmlFinal);
 
@@ -1503,13 +1522,11 @@ class VentanaNota extends JFrame {
                         imgIndex++;
                     }
                 }
-                // Reemplaza los saltos de línea por <br> antes de generar el HTML
-                Libreta.reemplazarSaltosDeLinea(doc, kit);
                 
                 // Generar HTML final ya con <img src='...'>
                 writer = new StringWriter(); // reinicia
                 kit.write(writer, doc, 0, doc.getLength());
-                not.contenidoHTML = writer.toString();
+                not.contenidoHTML = Libreta.aplicarEstiloEspaciado(writer.toString());
 
                 // Ordenar visualmente las notas actuales
                 ArrayList<Nota> visibles = Collections.list(Libreta.Notas.elements());
