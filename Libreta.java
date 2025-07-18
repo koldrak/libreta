@@ -293,14 +293,50 @@ public class Libreta {
             return;
         }
 
-        JList<Nota> lista = new JList<>(new Vector<>(todasLasNotas));
+        DefaultListModel<Nota> modelo = new DefaultListModel<>();
+        for (Nota n : todasLasNotas) {
+            modelo.addElement(n);
+        }
+
+        JList<Nota> lista = new JList<>(modelo);
         lista.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+
+        JTextField buscador = new JTextField();
+        buscador.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { filtrar(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { filtrar(); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { filtrar(); }
+
+            private void filtrar() {
+                String texto = buscador.getText().toLowerCase();
+                modelo.clear();
+                for (Nota n : todasLasNotas) {
+                    String titulo = n.titulo.toLowerCase();
+                    boolean coincide = true;
+                    for (String palabra : texto.split("\\s+")) {
+                        if (!titulo.contains(palabra)) {
+                            coincide = false;
+                            break;
+                        }
+                    }
+                    if (coincide) {
+                        modelo.addElement(n);
+                    }
+                }
+            }
+        });
+
         JScrollPane scroll = new JScrollPane(lista);
         scroll.setPreferredSize(new Dimension(300, 200));
+
+        JPanel panelLista = new JPanel(new BorderLayout());
+        panelLista.add(buscador, BorderLayout.NORTH);
+        panelLista.add(scroll, BorderLayout.CENTER);
+
         JTextField nombreArchivo = new JTextField("NotasExportadas.docx");
 
         Object[] mensaje = {
-            "Seleccione las notas a exportar:", scroll,
+            "Seleccione las notas a exportar:", panelLista,
             "Nombre del archivo (.docx):", nombreArchivo
         };
 
