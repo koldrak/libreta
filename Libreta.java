@@ -46,6 +46,7 @@ import java.util.LinkedHashMap;
 import java.awt.geom.AffineTransform;
 import java.util.TreeMap;
 import java.util.Calendar;
+import java.util.Vector;
 
 public class Libreta {
     static DefaultListModel <Nota> Notas = new DefaultListModel <>();
@@ -287,10 +288,46 @@ public class Libreta {
 	}
 	
     public static void exportarNotasAWord() {
+        if (todasLasNotas.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No hay notas para exportar");
+            return;
+        }
+
+        JList<Nota> lista = new JList<>(new Vector<>(todasLasNotas));
+        lista.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        JScrollPane scroll = new JScrollPane(lista);
+        scroll.setPreferredSize(new Dimension(300, 200));
+        JTextField nombreArchivo = new JTextField("NotasExportadas.docx");
+
+        Object[] mensaje = {
+            "Seleccione las notas a exportar:", scroll,
+            "Nombre del archivo (.docx):", nombreArchivo
+        };
+
+        int opcion = JOptionPane.showConfirmDialog(null, mensaje,
+                "Exportar a Word", JOptionPane.OK_CANCEL_OPTION);
+        if (opcion != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        java.util.List<Nota> seleccionadas = lista.getSelectedValuesList();
+        if (seleccionadas.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No se seleccionaron notas");
+            return;
+        }
+
+        String nombre = nombreArchivo.getText().trim();
+        if (nombre.isEmpty()) {
+            nombre = "NotasExportadas.docx";
+        }
+        if (!nombre.toLowerCase().endsWith(".docx")) {
+            nombre += ".docx";
+        }
+
         try {
             XWPFDocument doc = new XWPFDocument();
 
-            for (Nota nota : todasLasNotas) {
+            for (Nota nota : seleccionadas) {
                 // Título de la nota
                 XWPFParagraph titulo = doc.createParagraph();
                 XWPFRun runTitulo = titulo.createRun();
@@ -301,17 +338,17 @@ public class Libreta {
                 org.jsoup.nodes.Document htmlDoc = Jsoup.parse(nota.contenidoHTML);
                 XWPFParagraph[] actual = new XWPFParagraph[] { doc.createParagraph() };
                 for (org.jsoup.nodes.Node nodo : htmlDoc.body().childNodes()) {
-                	procesarNodo(nodo, doc, actual, null, false);
+                        procesarNodo(nodo, doc, actual, null, false);
                 }
 
                 doc.createParagraph(); // salto entre notas
             }
 
-            try (FileOutputStream out = new FileOutputStream("NotasExportadas.docx")) {
+            try (FileOutputStream out = new FileOutputStream(nombre)) {
                 doc.write(out);
             }
 
-            JOptionPane.showMessageDialog(null, "Notas exportadas correctamente a NotasExportadas.docx");
+            JOptionPane.showMessageDialog(null, "Notas exportadas correctamente a " + nombre);
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(null, "Error al exportar: " + e.getMessage());
